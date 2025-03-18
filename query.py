@@ -12,17 +12,36 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Environment variables with defaults
-LLM_MODEL = os.getenv('LLM_MODEL', 'mistral')
-EMBEDDING_MODEL = os.getenv('EMBEDDING_MODEL', 'mistral')
+LLM_MODEL = os.getenv('LLM_MODEL', 'sixthwood')  # Use the custom sixthwood model by default
+EMBEDDING_MODEL = os.getenv('EMBEDDING_MODEL', 'mistral')  # Keep using mistral for embeddings
 CHROMA_PERSIST_DIR = os.getenv('CHROMA_PERSIST_DIR', './chroma_db')
 OLLAMA_BASE_URL = os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')
 RETRIEVAL_K = int(os.getenv('RETRIEVAL_K', '4'))
 
-def query(question):
+def query(question, template_name=None, temperature=None):
+    """
+    Query the vector database with a question.
+
+    Args:
+        question (str): The question to ask
+        template_name (str, optional): The prompt template to use. Defaults to env var or 'sixthwood'
+        temperature (float, optional): Model temperature. Defaults to env var or 1.0
+
+    Returns:
+        str: The model's response
+    """
     try:
-        logger.info(f"Processing query: {question}")
+        # Use arguments if provided, otherwise fall back to env vars
+        if template_name is None:
+            template_name = os.getenv('PROMPT_TEMPLATE', 'sixthwood')
+
+        if temperature is None:
+            temperature = float(os.getenv('LLM_TEMPERATURE', '1.0'))
+
+        logger.info(f"Processing query using model {LLM_MODEL} (temp={temperature}, template={template_name}): {question}")
 
         # Create embeddings and connect to the vector database
+        # IMPORTANT: Use the same model for embeddings as was used during document embedding
         embeddings = OllamaEmbeddings(
             model=EMBEDDING_MODEL,
             base_url=OLLAMA_BASE_URL
@@ -42,28 +61,20 @@ def query(question):
         )
         logger.info(f"Created retriever with k={RETRIEVAL_K}")
 
-        # Create LLM
+        # Create LLM with the custom model
         llm = ChatOllama(
             model=LLM_MODEL,
             base_url=OLLAMA_BASE_URL,
-            temperature=0.2  # Lower temperature for more factual responses
+            temperature=temperature,
+            system=None  # Use the model's built-in system prompt
         )
-        logger.info(f"Using Ollama LLM with model: {LLM_MODEL}")
+        logger.info(f"Using Ollama LLM with model: {LLM_MODEL}, temperature: {temperature}")
 
-        # Create prompt template for better answers
-        template = """
-        Answer the question based only on the following context. If the answer is not in the context,
-        say "I don't have enough information to answer this question." Don't make up information.
+        # Load the prompt template based on settings
+        template_text = get_template(template_name)
+        logger.info(f"Using prompt template: {template_name}")
 
-        Context:
-        {context}
-
-        Question: {question}
-
-        Answer:
-        """
-
-        prompt = ChatPromptTemplate.from_template(template)
+        prompt = ChatPromptTemplate.from_template(template_text)
         logger.info("Created prompt template")
 
         # Set up the chain using LangChain Expression Language (LCEL)

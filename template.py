@@ -59,13 +59,24 @@ UPLOAD_FORM_TEMPLATE = """
             padding: 5px 0;
             border-bottom: 1px solid #eee;
         }
-        .file-item:last-child {
-            border-bottom: none;
+        .query-options {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
         }
-        .remove-file {
-            color: #f44336;
-            cursor: pointer;
-            font-weight: bold;
+        .query-option {
+            flex: 1;
+        }
+        select, input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+        select:focus, input[type="number"]:focus {
+            border-color: #4CAF50;
+            outline: none;
         }
         label {
             display: block;
@@ -109,7 +120,34 @@ UPLOAD_FORM_TEMPLATE = """
     </style>
 </head>
 <body>
-                <h1>PDF & Markdown Embedding Tool</h1>
+    <h1>PDF & Markdown Embedding Tool</h1>
+
+    <div class="query-container">
+        <h2>Query Embedded Documents</h2>
+        <form id="queryForm">
+            <label for="queryInput">Enter your question:</label>
+            <input type="text" id="queryInput" name="query" placeholder="What would you like to know about the document?" required>
+
+            <div class="query-options">
+                <div class="query-option">
+                    <label for="templateSelect">Response style:</label>
+                    <select id="templateSelect" name="template">
+                        <option value="standard">Standard</option>
+                        <option value="creative">Creative</option>
+                        <option value="sixthwood" selected>Sixth Wood</option>
+                    </select>
+                </div>
+
+                <div class="query-option">
+                    <label for="temperatureInput">Temperature (0-2):</label>
+                    <input type="number" id="temperatureInput" name="temperature" min="0" max="2" step="0.1" value="1.0">
+                </div>
+            </div>
+
+            <button type="submit">Submit Query</button>
+        </form>
+        <div id="queryResponse" class="response"></div>
+    </div>
 
     <div class="form-container">
         <h2>Upload Documents</h2>
@@ -125,16 +163,6 @@ UPLOAD_FORM_TEMPLATE = """
             <button type="submit" id="uploadButton" disabled>Upload and Embed</button>
         </form>
         <div id="uploadResponse" class="response"></div>
-    </div>
-
-    <div class="query-container">
-        <h2>Query Embedded Documents</h2>
-        <form id="queryForm">
-            <label for="queryInput">Enter your question:</label>
-            <input type="text" id="queryInput" name="query" placeholder="What would you like to know about the document?" required>
-            <button type="submit">Submit Query</button>
-        </form>
-        <div id="queryResponse" class="response"></div>
     </div>
 
     <div class="admin-container">
@@ -317,10 +345,27 @@ UPLOAD_FORM_TEMPLATE = """
         document.getElementById('queryForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const queryInput = document.getElementById('queryInput').value;
+            const templateSelect = document.getElementById('templateSelect');
+            const temperatureInput = document.getElementById('temperatureInput');
             const responseDiv = document.getElementById('queryResponse');
 
             responseDiv.style.display = 'block';
             responseDiv.textContent = 'Processing query...';
+
+            // Prepare request data
+            const requestData = {
+                query: queryInput
+            };
+
+            // Add template if selected
+            if (templateSelect && templateSelect.value) {
+                requestData.template = templateSelect.value;
+            }
+
+            // Add temperature if provided
+            if (temperatureInput && temperatureInput.value) {
+                requestData.temperature = parseFloat(temperatureInput.value);
+            }
 
             try {
                 const response = await fetch('/query', {
@@ -328,7 +373,7 @@ UPLOAD_FORM_TEMPLATE = """
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ query: queryInput })
+                    body: JSON.stringify(requestData)
                 });
 
                 const result = await response.json();

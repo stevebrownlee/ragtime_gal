@@ -1,12 +1,13 @@
+"""Main application file for the Langchain API server """
 import os
+import logging
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify, render_template_string
 from embed import embed
 from query import query
-from template import UPLOAD_FORM_TEMPLATE
 from langchain_chroma import Chroma
 from langchain_ollama import OllamaEmbeddings
-import logging
+from template import UPLOAD_FORM_TEMPLATE
 
 # Load environment variables
 load_dotenv()
@@ -72,14 +73,33 @@ def route_query():
         if not data or 'query' not in data:
             return jsonify({'error': 'Missing query parameter'}), 400
 
-        response = query(data.get('query'))
+        # Extract optional parameters if provided
+        template_name = data.get('template')  # Optional template name
+        temperature = data.get('temperature')  # Optional temperature
+
+        # Convert temperature to float if provided
+        if temperature is not None:
+            try:
+                temperature = float(temperature)
+                if temperature < 0 or temperature > 2:
+                    return jsonify({'error': 'Temperature must be between 0 and 2'}), 400
+            except ValueError:
+                return jsonify({'error': 'Temperature must be a number'}), 400
+
+        # Call the query function with parameters
+        response = query(
+            data.get('query'),
+            template_name=template_name,
+            temperature=temperature
+        )
+
         if response:
             return jsonify({'message': response}), 200
 
         return jsonify({'error': 'No response generated'}), 400
 
     except Exception as e:
-        logger.error(f"Error in query route: {e}")
+        logger.error("Error in query route: %s", e)
         return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 @app.route('/purge', methods=['POST'])

@@ -12,8 +12,18 @@ flask = "*"
 langchain-community = "*"
 langchain-chroma = "*"
 langchain-ollama = "*"
+python-dotenv = "*"
+werkzeug = "*"
+langchain-core = "*"
+pypdf = "*"
 
 [dev-packages]
+black = "*"
+flake8 = "*"
+pytest = "*"
 
 [requires]
-python_version = "3.10"
+python_version = "3.13"
+
+[scripts]
+start = "python3 app.py"
