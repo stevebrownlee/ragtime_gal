@@ -373,7 +373,7 @@
         // Query form handling
         document.getElementById('queryForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            const queryInput = document.getElementById('queryInput').value;
+            const queryInput = document.getElementById('queryInput');
             const templateSelect = document.getElementById('templateSelect');
             const temperatureInput = document.getElementById('temperatureInput');
             const responseDiv = document.getElementById('queryResponse');
@@ -383,7 +383,7 @@
 
             // Prepare request data
             const requestData = {
-                query: queryInput
+                query: queryInput.value
             };
 
             // Add template if selected
@@ -408,6 +408,7 @@
                 const result = await response.json();
                 responseDiv.textContent = result.message || result.error;
                 responseDiv.style.borderLeft = response.ok ? '4px solid #4CAF50' : '4px solid #f44336';
+                queryInput.value = ''
             } catch (error) {
                 responseDiv.textContent = 'Error: ' + error.message;
                 responseDiv.style.borderLeft = '4px solid #f44336';

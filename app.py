@@ -27,6 +27,7 @@ app = Flask(__name__)
 
 # Helper function to get vector DB - replaces the imported get_vector_db
 def get_vector_db():
+    # pylint: disable=W0718
     try:
         # Use local Ollama embeddings instead of OpenAI
         embeddings = OllamaEmbeddings(
@@ -38,7 +39,7 @@ def get_vector_db():
             embedding_function=embeddings
         )
     except Exception as e:
-        logger.error(f"Error initializing vector database: {e}")
+        logger.error("Error initializing vector database: %s", e)
         raise
 
 @app.route('/', methods=['GET'])
@@ -49,6 +50,7 @@ def index():
 
 @app.route('/embed', methods=['POST'])
 def route_embed():
+    # pylint: disable=W0718
     try:
         if 'file' not in request.files:
             return jsonify({'error': 'No file part'}), 400
@@ -64,11 +66,13 @@ def route_embed():
         return jsonify({'error': 'File embedded unsuccessfully'}), 400
 
     except Exception as e:
-        logger.error(f"Error in embedding route: {e}")
+        logger.error("Error in embedding route: %s", e)
         return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 @app.route('/query', methods=['POST'])
 def route_query():
+    """Route to query the vector database with a question"""
+    # pylint: disable=W0718
     try:
         data = request.get_json()
         if not data or 'query' not in data:
@@ -106,6 +110,7 @@ def route_query():
 @app.route('/purge', methods=['POST'])
 def purge_database():
     """Route to delete all documents from the vector database"""
+    # pylint: disable=W0718
     try:
         # Get the vector database
         embeddings = OllamaEmbeddings(
@@ -124,14 +129,14 @@ def purge_database():
         if all_ids:
             # Delete documents by their IDs
             db.delete(ids=all_ids)
-            logger.info(f"Purged {len(all_ids)} documents from the database at {CHROMA_PERSIST_DIR}")
+            logger.info("Purged %d documents from the database at %s", len(all_ids), CHROMA_PERSIST_DIR)
             return jsonify({'message': f'Database purged successfully. Removed {len(all_ids)} documents.'}), 200
         else:
             logger.info("No documents found to purge")
             return jsonify({'message': 'Database is already empty. No documents to purge.'}), 200
 
     except Exception as e:
-        logger.error(f"Error purging database: {str(e)}")
+        logger.error("Error purging database: %s", str(e))
         return jsonify({'error': f'Error purging database: {str(e)}'}), 500
 
 @app.route('/health', methods=['GET'])
@@ -143,5 +148,5 @@ if __name__ == '__main__':
     port = int(os.getenv('PORT', 8080))
     debug = os.getenv('DEBUG', 'False').lower() == 'true'
 
-    logger.info(f"Starting server on port {port} with debug={debug}")
+    logger.info("Starting server on port %d with debug=%s", port, debug)
     app.run(host='0.0.0.0', port=port, debug=debug)

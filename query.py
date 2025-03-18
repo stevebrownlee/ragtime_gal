@@ -39,7 +39,7 @@ def query(question, template_name=None, temperature=None):
         if temperature is None:
             temperature = float(os.getenv('LLM_TEMPERATURE', '1.0'))
 
-        logger.info(f"Processing query using model {LLM_MODEL} (temp={temperature}, template={template_name}): {question}")
+        logger.info("Processing query using model %s (temp=%s, template=%s): %s", LLM_MODEL, temperature, template_name, question)
 
         # Create embeddings and connect to the vector database
         # IMPORTANT: Use the same model for embeddings as was used during document embedding
@@ -47,20 +47,20 @@ def query(question, template_name=None, temperature=None):
             model=EMBEDDING_MODEL,
             base_url=OLLAMA_BASE_URL
         )
-        logger.info(f"Using Ollama embeddings with model: {EMBEDDING_MODEL}")
+        logger.info("Using Ollama embeddings with model: %s", EMBEDDING_MODEL)
 
         db = Chroma(
             persist_directory=CHROMA_PERSIST_DIR,
             embedding_function=embeddings
         )
-        logger.info(f"Connected to ChromaDB at {CHROMA_PERSIST_DIR}")
+        logger.info("Connected to ChromaDB at %s", CHROMA_PERSIST_DIR)
 
         # Create retriever
         retriever = db.as_retriever(
             search_type="similarity",
             search_kwargs={"k": RETRIEVAL_K}
         )
-        logger.info(f"Created retriever with k={RETRIEVAL_K}")
+        logger.info("Created retriever with k=%s", RETRIEVAL_K)
 
         # Create LLM with the custom model
         llm = ChatOllama(
@@ -69,18 +69,18 @@ def query(question, template_name=None, temperature=None):
             temperature=temperature,
             system=None  # Use the model's built-in system prompt
         )
-        logger.info(f"Using Ollama LLM with model: {LLM_MODEL}, temperature: {temperature}")
+        logger.info("Using Ollama LLM with model: %s, temperature: %s", LLM_MODEL, temperature)
 
         # Load the prompt template based on settings
         template_text = get_template(template_name)
-        logger.info(f"Using prompt template: {template_name}")
+        logger.info("Using prompt template: %s", template_name)
 
         prompt = ChatPromptTemplate.from_template(template_text)
         logger.info("Created prompt template")
 
         docs = retriever.get_relevant_documents(question)
         for i, doc in enumerate(docs):
-            logger.info(f"Retrieved document {i+1}: {doc.page_content[:100]}...")  # Log first 100 chars
+            logger.info("Retrieved document %d: %s...", i+1, doc.page_content[:100])  # Log first 100 chars
 
         # Set up the chain using LangChain Expression Language (LCEL)
         chain = (
@@ -99,5 +99,5 @@ def query(question, template_name=None, temperature=None):
         return response
 
     except Exception as e:
-        logger.error(f"Error in query function: {str(e)}")
+        logger.error("Error in query function: %s", str(e))
         return f"An error occurred: {str(e)}"

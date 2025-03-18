@@ -88,17 +88,19 @@ ollama pull llama3
 
 The application can be configured using environment variables or a `.env` file:
 
-```
+```py
 # Model settings
 EMBEDDING_MODEL=mistral
-LLM_MODEL=custom-ollama-model
+LLM_MODEL=mistral
+
+# Close to 0 is factual and close to 1 is creative
 LLM_TEMPERATURE=1.0
 
-# Server settings
+# HTTP server settings
 PORT=8080
-DEBUG=true
+DEBUG=false
 
-# Paths
+# Path settings
 TEMP_FOLDER=./_temp
 CHROMA_PERSIST_DIR=./chroma_db
 PROMPT_TEMPLATES_PATH=./prompt_templates.json
@@ -106,6 +108,12 @@ TEMPLATE_PATH=./template.html
 
 # Ollama settings
 OLLAMA_BASE_URL=http://localhost:11434
+
+# Increase this to "cast a wider net" when querying
+RETRIEVAL_K=4
+
+# Your choice of prompt from prompt_templates.json
+PROMPT_TEMPLATE=standard
 ```
 
 ## Customizing Prompt Templates
