@@ -1,0 +1,53 @@
+# Environment and configuration
+.env
+.env.*
+env/
+venv/
+ENV/
+.vscode/
+*.pyc
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+.idea/
+.DS_Store
+
+# Temporary files
+_temp/
+*.tmp
+*.temp
+
+# Database
+chroma_db/
+chromadb/
+vector_db/
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+logs/
+log/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+*.egg
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# PDFs and other document files (if you want to exclude them from git)
+*.pdf
+*.md
+documents/
+uploads/
+
+# Ollama model files
+ollama_models/
+
+# Local development
+.python-version
