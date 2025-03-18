@@ -82,8 +82,8 @@ def route_query():
         if temperature is not None:
             try:
                 temperature = float(temperature)
-                if temperature < 0 or temperature > 2:
-                    return jsonify({'error': 'Temperature must be between 0 and 2'}), 400
+                if temperature < 0 or temperature > 1:
+                    return jsonify({'error': 'Temperature must be between 0 and 1'}), 400
             except ValueError:
                 return jsonify({'error': 'Temperature must be a number'}), 400
 

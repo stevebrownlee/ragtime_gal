@@ -55,7 +55,7 @@ The application can be configured using environment variables or a `.env` file:
 ```
 # Model settings
 EMBEDDING_MODEL=mistral
-LLM_MODEL=mistral
+LLM_MODEL=custom-ollama-model
 LLM_TEMPERATURE=1.0
 
 # Server settings
@@ -66,6 +66,7 @@ DEBUG=true
 TEMP_FOLDER=./_temp
 CHROMA_PERSIST_DIR=./chroma_db
 PROMPT_TEMPLATES_PATH=./prompt_templates.json
+TEMPLATE_PATH=./template.html
 
 # Ollama settings
 OLLAMA_BASE_URL=http://localhost:11434
@@ -106,7 +107,7 @@ pipenv run start
 4. Query your documents:
    - Enter your question
    - Select a response style (Standard, Creative, etc.)
-   - Adjust temperature as needed (0-2)
+   - Adjust temperature as needed (0-1)
    - Click "Submit Query"
 
 5. Optional: Purge database if needed (in the admin section)
