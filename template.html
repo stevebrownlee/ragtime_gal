@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>PDF & Markdown Embedding Tool</title>
+    <title>Text Embedding Tool for RAG</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -70,14 +70,35 @@
         }
         .query-option {
             flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .query-input {
+            display: flex;
+            flex-direction: column;
+        }
+        .query-input textarea {
+            min-height: 5rem;
+        }
+        #queryInput {
+            min-height: 5rem;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            resize: vertical;
+        }
+        #queryInput:focus {
+            border-color: #4CAF50;
+            outline: none;
         }
         select, input[type="number"] {
-            width: 100%;
             padding: 8px;
             margin-bottom: 15px;
             border: 1px solid #ddd;
             border-radius: 3px;
         }
+
         select:focus, input[type="number"]:focus {
             border-color: #4CAF50;
             outline: none;
@@ -121,16 +142,20 @@
             border-left: 4px solid #4CAF50;
             display: none;
         }
+
     </style>
 </head>
 <body>
-    <h1>Model Embedding Tool for RAG</h1>
+    <h1>Ragtime Gal</h1>
+    <h4 style="font-style: italic; color: #888">Document-Based Question Answering with Local Language Models</h4>
 
     <div class="query-container">
         <h2>Query Embedded Documents</h2>
         <form id="queryForm">
-            <label for="queryInput">Enter your question:</label>
-            <input type="text" id="queryInput" name="query" placeholder="What would you like to know about the document?" required>
+            <div class="query-input">
+                <label for="queryInput">Enter your question or instruction:</label>
+                <textarea id="queryInput" name="query" placeholder="What would you like to know about the document?" required></textarea>
+            </div>
 
             <div class="query-options">
                 <div class="query-option">

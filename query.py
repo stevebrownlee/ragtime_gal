@@ -78,6 +78,10 @@ def query(question, template_name=None, temperature=None):
         prompt = ChatPromptTemplate.from_template(template_text)
         logger.info("Created prompt template")
 
+        docs = retriever.get_relevant_documents(question)
+        for i, doc in enumerate(docs):
+            logger.info(f"Retrieved document {i+1}: {doc.page_content[:100]}...")  # Log first 100 chars
+
         # Set up the chain using LangChain Expression Language (LCEL)
         chain = (
             {"context": retriever, "question": RunnablePassthrough()}

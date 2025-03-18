@@ -2,6 +2,42 @@
 
 A fully local RAG (Retrieval Augmented Generation) system powered by Ollama. This web application allows you to upload PDF and Markdown documents, process them into a vector database, and then query them using natural language.
 
+## Process for Embedding Documents
+
+```mermaid
+flowchart LR
+    %% Document Upload and Embedding Process
+    Upload[User Interface] -->|PDF/MD files| App[Flask App]
+    App -->|Process file| Embed[embed.py]
+    Embed -->|Extract text| TextLoader[Document Loader]
+    TextLoader -->|Raw text| Chunker[Text Splitter]
+    Chunker -->|Text chunks| Embedder[Ollama Embeddings]
+    Embedder -->|Vector embeddings| ChromaDB[(ChromaDB)]
+
+    %% External dependencies
+    Ollama[Ollama Server] -.->|mistral model| Embedder
+```
+
+## Process for RAG Query Responses
+
+```mermaid
+flowchart LR
+    %% RAG Query Process
+    Query[User Interface] -->|Question| App[Flask App]
+    App -->|Process query| QueryModule[query.py]
+    QueryModule -->|Embed question| Embedder[Ollama Embeddings]
+    ChromaDB[(ChromaDB)] -->|Similar chunks| QueryModule
+
+    QueryModule -->|Context + Question| PromptBuilder[Prompt Template]
+    PromptBuilder -->|Formatted prompt| LLM[Ollama LLM]
+    LLM -->|Generated answer| App
+    App -->|Display response| Query
+
+    %% External dependencies
+    Ollama[Ollama Server] -.->|mistral for embeddings| Embedder
+    Ollama -.->|sixthwood for generation| LLM
+```
+
 ## Features
 
 - 100% local processing - no API keys or external services required
