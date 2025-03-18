@@ -7,7 +7,7 @@ from embed import embed
 from query import query
 from langchain_chroma import Chroma
 from langchain_ollama import OllamaEmbeddings
-from template import UPLOAD_FORM_TEMPLATE
+from template import load_html_template
 
 # Load environment variables
 load_dotenv()
@@ -44,7 +44,8 @@ def get_vector_db():
 @app.route('/', methods=['GET'])
 def index():
     """Route to display the upload form"""
-    return render_template_string(UPLOAD_FORM_TEMPLATE)
+    template_html = load_html_template()
+    return render_template_string(template_html)
 
 @app.route('/embed', methods=['POST'])
 def route_embed():

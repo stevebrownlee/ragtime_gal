@@ -1,6 +1,9 @@
 # Environment and configuration
 .env
-.env.*
+.env.local
+.env.development
+.env.test
+.env.production
 env/
 venv/
 ENV/
@@ -42,7 +45,6 @@ build/
 
 # PDFs and other document files (if you want to exclude them from git)
 *.pdf
-*.md
 documents/
 uploads/
 

@@ -33,20 +33,6 @@ DEFAULT_TEMPLATES = {
         Question: {question}
 
         Answer:
-        """,
-
-    "sixthwood": """
-        Use your expertise in the Sixth Wood series to answer the following question based on the provided context.
-        Respond in the style and tone consistent with the world of the Sixth Wood.
-        If the information isn't contained in the context, acknowledge this but offer relevant insights from your
-        knowledge of the series where appropriate.
-
-        Context:
-        {context}
-
-        Question: {question}
-
-        Answer:
         """
 }
 
