@@ -67,7 +67,9 @@ def query(question, template_name=None, temperature=None):
             model=LLM_MODEL,
             base_url=OLLAMA_BASE_URL,
             temperature=temperature,
-            system=None  # Use the model's built-in system prompt
+            system=None,  # Use the model's built-in system prompt
+            num_predict=4096,  # Request longer generations
+            repeat_penalty=1.1  # Slightly penalize repetition
         )
         logger.info("Using Ollama LLM with model: %s, temperature: %s", LLM_MODEL, temperature)
 
