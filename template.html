@@ -125,6 +125,7 @@
             border: none;
             border-radius: 4px;
             cursor: pointer;
+            margin-right: 10px;
         }
         button:hover {
             background-color: #45a049;
@@ -135,6 +136,12 @@
         .danger-button:hover {
             background-color: #d32f2f;
         }
+        .warning-button {
+            background-color: #ff9800;
+        }
+        .warning-button:hover {
+            background-color: #e68a00;
+        }
         .response {
             margin-top: 20px;
             padding: 15px;
@@ -142,7 +149,67 @@
             border-left: 4px solid #4CAF50;
             display: none;
         }
-
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+        .conversation-indicator {
+            display: inline-block;
+            margin-left: 10px;
+            padding: 2px 8px;
+            background-color: #e8f5e9;
+            border-radius: 12px;
+            font-size: 0.8em;
+            color: #4CAF50;
+        }
+        .follow-up-indicator {
+            display: inline-block;
+            margin-left: 10px;
+            padding: 2px 8px;
+            background-color: #e3f2fd;
+            border-radius: 12px;
+            font-size: 0.8em;
+            color: #2196F3;
+        }
+        .conversation-history {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+        }
+        .conversation-entry {
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #ddd;
+        }
+        .conversation-entry:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+        .user-query {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .system-response {
+            margin-left: 15px;
+        }
+        .toggle-history {
+            background: none;
+            border: none;
+            color: #4CAF50;
+            cursor: pointer;
+            padding: 0;
+            font-size: 0.9em;
+            margin-top: 10px;
+            text-decoration: underline;
+        }
+        .toggle-history:hover {
+            color: #45a049;
+        }
     </style>
 </head>
 <body>
@@ -150,7 +217,10 @@
     <h4 style="font-style: italic; color: #888">Document-Based Question Answering with Local Language Models</h4>
 
     <div class="query-container">
-        <h2>Query Embedded Documents</h2>
+        <h2>Query Embedded Documents
+            <span id="conversationActive" class="conversation-indicator" style="display: none;">Conversation Active</span>
+            <span id="followUpIndicator" class="follow-up-indicator" style="display: none;">Follow-up Question</span>
+        </h2>
         <form id="queryForm">
             <div class="query-input">
                 <label for="queryInput">Enter your question or instruction:</label>
@@ -173,9 +243,15 @@
                 </div>
             </div>
 
-            <button type="submit">Submit Query</button>
+            <div class="button-group">
+                <button type="submit">Submit Query</button>
+                <button type="button" id="clearHistoryButton" class="warning-button">Clear Conversation</button>
+            </div>
         </form>
         <div id="queryResponse" class="response"></div>
+
+        <button id="toggleHistory" class="toggle-history" style="display: none;">Show Conversation History</button>
+        <div id="conversationHistory" class="conversation-history"></div>
     </div>
 
     <div class="form-container">
@@ -210,9 +286,18 @@
         const uploadButton = document.getElementById('uploadButton');
         const uploadForm = document.getElementById('uploadForm');
         const uploadResponse = document.getElementById('uploadResponse');
+        const conversationIndicator = document.getElementById('conversationActive');
+        const followUpIndicator = document.getElementById('followUpIndicator');
+        const clearHistoryButton = document.getElementById('clearHistoryButton');
+        const toggleHistoryButton = document.getElementById('toggleHistory');
+        const conversationHistoryDiv = document.getElementById('conversationHistory');
 
         // Track selected files
         let selectedFiles = [];
+        // Track if conversation is active
+        let conversationActive = false;
+        // Track conversation history
+        let conversationHistory = [];
 
         // Handle drag and drop events
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -370,6 +455,69 @@
             }
         });
 
+        // Function to update conversation history display
+        function updateConversationHistoryDisplay() {
+            if (conversationHistory.length === 0) {
+                toggleHistoryButton.style.display = 'none';
+                conversationHistoryDiv.style.display = 'none';
+                return;
+            }
+
+            toggleHistoryButton.style.display = 'block';
+
+            // Update the conversation history div
+            conversationHistoryDiv.innerHTML = '';
+            conversationHistory.forEach((entry, index) => {
+                const entryDiv = document.createElement('div');
+                entryDiv.className = 'conversation-entry';
+
+                const queryDiv = document.createElement('div');
+                queryDiv.className = 'user-query';
+                queryDiv.textContent = `Q: ${entry.query}`;
+
+                const responseDiv = document.createElement('div');
+                responseDiv.className = 'system-response';
+                responseDiv.textContent = `A: ${entry.response}`;
+
+                entryDiv.appendChild(queryDiv);
+                entryDiv.appendChild(responseDiv);
+                conversationHistoryDiv.appendChild(entryDiv);
+            });
+        }
+
+        // Toggle conversation history display
+        toggleHistoryButton.addEventListener('click', function() {
+            if (conversationHistoryDiv.style.display === 'none' || conversationHistoryDiv.style.display === '') {
+                conversationHistoryDiv.style.display = 'block';
+                toggleHistoryButton.textContent = 'Hide Conversation History';
+            } else {
+                conversationHistoryDiv.style.display = 'none';
+                toggleHistoryButton.textContent = 'Show Conversation History';
+            }
+        });
+
+        // Check for follow-up questions
+        function checkForFollowUp(query) {
+            if (!conversationActive || conversationHistory.length === 0) {
+                return false;
+            }
+
+            // Simple heuristic to detect follow-up questions
+            const followUpIndicators = [
+                'it', 'this', 'that', 'these', 'those', 'the',
+                'your', 'you', 'previous', 'last', 'above',
+                'earlier', 'before', 'chapter', 'summary'
+            ];
+
+            const queryLower = query.toLowerCase();
+            return followUpIndicators.some(indicator =>
+                queryLower.includes(` ${indicator} `) ||
+                queryLower.startsWith(`${indicator} `) ||
+                queryLower.endsWith(` ${indicator}`) ||
+                queryLower === indicator
+            );
+        }
+
         // Query form handling
         document.getElementById('queryForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -377,6 +525,14 @@
             const templateSelect = document.getElementById('templateSelect');
             const temperatureInput = document.getElementById('temperatureInput');
             const responseDiv = document.getElementById('queryResponse');
+
+            // Check if this might be a follow-up question
+            const isFollowUp = checkForFollowUp(queryInput.value);
+            if (isFollowUp) {
+                followUpIndicator.style.display = 'inline-block';
+            } else {
+                followUpIndicator.style.display = 'none';
+            }
 
             responseDiv.style.display = 'block';
             responseDiv.textContent = 'Processing query...';
@@ -406,14 +562,90 @@
                 });
 
                 const result = await response.json();
-                responseDiv.textContent = result.message || result.error;
-                responseDiv.style.borderLeft = response.ok ? '4px solid #4CAF50' : '4px solid #f44336';
-                queryInput.value = ''
+
+                if (response.ok) {
+                    responseDiv.textContent = result.message;
+                    responseDiv.style.borderLeft = '4px solid #4CAF50';
+
+                    // Update conversation status
+                    conversationActive = result.conversation_active;
+                    if (conversationActive) {
+                        conversationIndicator.style.display = 'inline-block';
+
+                        // Add to conversation history
+                        conversationHistory.push({
+                            query: queryInput.value,
+                            response: result.message,
+                            isFollowUp: result.is_follow_up
+                        });
+
+                        // Update history display
+                        updateConversationHistoryDisplay();
+                    }
+                } else {
+                    responseDiv.textContent = result.error;
+                    responseDiv.style.borderLeft = '4px solid #f44336';
+                }
+
+                queryInput.value = '';
             } catch (error) {
                 responseDiv.textContent = 'Error: ' + error.message;
                 responseDiv.style.borderLeft = '4px solid #f44336';
             }
         });
+
+        // Clear conversation history handling
+        clearHistoryButton.addEventListener('click', async function() {
+            if (confirm('Are you sure you want to clear the conversation history? This will reset the context for future queries.')) {
+                const responseDiv = document.getElementById('queryResponse');
+
+                responseDiv.style.display = 'block';
+                responseDiv.textContent = 'Clearing conversation history...';
+
+                try {
+                    const response = await fetch('/clear-history', {
+                        method: 'POST'
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        responseDiv.textContent = result.message;
+                        responseDiv.style.borderLeft = '4px solid #4CAF50';
+
+                        // Reset conversation state
+                        conversationActive = false;
+                        conversationIndicator.style.display = 'none';
+                        followUpIndicator.style.display = 'none';
+                        conversationHistory = [];
+                        updateConversationHistoryDisplay();
+                    } else {
+                        responseDiv.textContent = result.error;
+                        responseDiv.style.borderLeft = '4px solid #f44336';
+                    }
+                } catch (error) {
+                    responseDiv.textContent = 'Error: ' + error.message;
+                    responseDiv.style.borderLeft = '4px solid #f44336';
+                }
+            }
+        });
+
+        // Check conversation status on page load
+        async function checkConversationStatus() {
+            try {
+                const response = await fetch('/conversation-status');
+                const result = await response.json();
+
+                if (response.ok) {
+                    conversationActive = result.conversation_active;
+                    if (conversationActive) {
+                        conversationIndicator.style.display = 'inline-block';
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking conversation status:', error);
+            }
+        }
 
         // Purge database handling
         document.getElementById('purgeButton').addEventListener('click', async function() {
@@ -437,6 +669,9 @@
                 }
             }
         });
+
+        // Initialize
+        checkConversationStatus();
     </script>
 </body>
 </html>
