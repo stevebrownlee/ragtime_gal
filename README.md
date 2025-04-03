@@ -1,191 +1,105 @@
-# LocalRAG - Local Retrieval Augmented Generation System
+# Enhanced Conversational RAG System
 
-A fully local RAG (Retrieval Augmented Generation) system powered by Ollama. This web application allows you to upload PDF and Markdown documents, process them into a vector database, and then query them using natural language.
+This project implements a document-based question answering system with enhanced conversational capabilities using local language models.
 
-## Process for Embedding Documents
+## Key Features
 
-```mermaid
-flowchart LR
-    %% Document Upload and Embedding Process
-    Upload[User Interface] -->|PDF/MD files| App[Flask App]
-    App -->|Process file| Embed[embed.py]
-    Embed -->|Extract text| TextLoader[Document Loader]
-    TextLoader -->|Raw text| Chunker[Text Splitter]
-    Chunker -->|Text chunks| Embedder[Ollama Embeddings]
-    Embedder -->|Vector embeddings| ChromaDB[(ChromaDB)]
+- **Vector-based conversation memory**: Uses embeddings to find semantically relevant previous interactions
+- **Dynamic context management**: Intelligently selects and formats context based on query type
+- **Conversation summarization**: Compresses older conversation turns to manage token usage
+- **Sophisticated query classification**: Determines if a query is a follow-up using both regex and semantic similarity
 
-    %% External dependencies
-    Ollama[Ollama Server] -.->|mistral model| Embedder
-```
+## Architecture
 
-## Process for RAG Query Responses
+The system follows a modular architecture with the following components:
 
-```mermaid
-flowchart LR
-    %% RAG Query Process
-    Query[User Interface] -->|Question| App[Flask App]
-    App -->|Process query| QueryModule[query.py]
-    QueryModule -->|Embed question| Embedder[Ollama Embeddings]
-    ChromaDB[(ChromaDB)] -->|Similar chunks| QueryModule
+### Core Components
 
-    QueryModule -->|Context + Question| PromptBuilder[Prompt Template]
-    PromptBuilder -->|Formatted prompt| LLM[Ollama LLM]
-    LLM -->|Generated answer| App
-    App -->|Display response| Query
-
-    %% External dependencies
-    Ollama[Ollama Server] -.->|mistral for embeddings| Embedder
-    Ollama -.->|sixthwood for generation| LLM
-```
-
-## Features
-
-- 100% local processing - no API keys or external services required
-- Support for both PDF and Markdown files
-- Multiple file upload with drag-and-drop interface
-- Configurable prompt templates to customize response style
-- Adjustable temperature to control response creativity
-- Database purge functionality for easy maintenance
-
-## Requirements
-
-- Python 3.8+
-- [Ollama](https://ollama.ai/) installed locally
-
-## Installation
-
-1. Clone this repository:
-
-```bash
-git clone https://github.com/yourusername/localrag.git
-cd localrag
-```
-
-2. Install dependencies using Pipenv:
-
-```bash
-# Install pipenv if you don't have it
-pip install pipenv
-
-# Install dependencies
-pipenv install
-
-# Activate the virtual environment
-pipenv shell
-```
-
-3. Make sure you have Ollama installed and running with the required models:
-
-```bash
-# Pull Mistral for embeddings
-ollama pull mistral
-
-# Optional: Pull or create custom models
-ollama pull llama3
-```
-
-## Configuration
-
-The application can be configured using environment variables or a `.env` file:
-
-```py
-# Model settings
-EMBEDDING_MODEL=mistral
-LLM_MODEL=mistral
-
-# Close to 0 is factual and close to 1 is creative
-LLM_TEMPERATURE=1.0
-
-# HTTP server settings
-PORT=8080
-DEBUG=false
-
-# Path settings
-TEMP_FOLDER=./_temp
-CHROMA_PERSIST_DIR=./chroma_db
-PROMPT_TEMPLATES_PATH=./prompt_templates.json
-TEMPLATE_PATH=./template.html
-
-# Ollama settings
-OLLAMA_BASE_URL=http://localhost:11434
-
-# Increase this to "cast a wider net" when querying
-RETRIEVAL_K=4
-
-# Your choice of prompt from prompt_templates.json
-PROMPT_TEMPLATE=standard
-```
-
-## Customizing Prompt Templates
-
-Prompt templates can be customized by editing the `prompt_templates.json` file. The file will be created with default templates on first run.
-
-Example template format:
-
-```json
-{
-  "standard": "Answer the question based only on the following context...",
-  "creative": "Use your expertise to answer the following question...",
-  "technical": "Provide a technical analysis of the following question..."
-}
-```
+- **TemplateManager**: Manages prompt templates with dynamic context sections
+- **ContextManager**: Handles context selection and formatting for different query types
+- **QueryClassifier**: Classifies queries to determine appropriate context handling
+- **ConversationEmbedder**: Embeds conversation interactions for vector-based retrieval
+- **ConversationSummarizer**: Generates summaries of conversation history
+- **EnhancedConversation**: Extends the base Conversation class with vector-based retrieval
 
 ## Usage
 
-1. Start the application:
+### Running the Application
 
-```bash
-# If you're in the pipenv shell
-python app.py
+1. Install dependencies:
+   ```
+   pip install -r requirements.txt
+   ```
 
-# Or use the script
-pipenv run start
+2. Start the application:
+   ```
+   python app.py
+   ```
+
+3. Open a web browser and navigate to `http://localhost:8080`
+
+### Embedding Documents
+
+1. Upload PDF or Markdown files through the web interface
+2. The system will automatically embed the documents and store them in the vector database
+
+### Querying Documents
+
+1. Enter your question in the query input field
+2. Select a response style (Standard, Creative, or Sixth Wood)
+3. Adjust the temperature if desired
+4. Submit your query
+
+The system will:
+1. Retrieve relevant documents from the vector database
+2. Classify your query to determine if it's a follow-up question
+3. Select appropriate context from conversation history if needed
+4. Generate a response using the selected template and context
+
+## Configuration
+
+The system can be configured through environment variables:
+
+- `LLM_MODEL`: The language model to use (default: 'sixthwood')
+- `EMBEDDING_MODEL`: The embedding model to use (default: 'mistral')
+- `CHROMA_PERSIST_DIR`: Directory for the vector database (default: './chroma_db')
+- `OLLAMA_BASE_URL`: Base URL for Ollama API (default: 'http://localhost:11434')
+- `RETRIEVAL_K`: Number of documents to retrieve (default: 4)
+- `PROMPT_TEMPLATES_PATH`: Path to prompt templates file (default: './prompt_templates.json')
+
+## Customizing Templates
+
+The system uses a unified template structure defined in `prompt_templates.json`:
+
+```json
+{
+  "base_templates": {
+    "standard": "...",
+    "creative": "...",
+    "sixthwood": "..."
+  },
+  "system_instructions": {
+    "standard": "...",
+    "creative": "...",
+    "sixthwood": "..."
+  },
+  "context_formats": {
+    "initial": "...",
+    "follow_up": "...",
+    "with_previous_content": "..."
+  }
+}
 ```
 
-2. Open your browser to `http://localhost:8080`
+You can customize these templates to change the system's response style and context handling.
 
-3. Upload PDF or Markdown files:
-   - Drag and drop files into the drop zone, or
-   - Click to select files
+## Implementation Notes
 
-4. Query your documents:
-   - Enter your question
-   - Select a response style (Standard, Creative, etc.)
-   - Adjust temperature as needed (0-1)
-   - Click "Submit Query"
+This system implements a modern approach to conversational RAG with:
 
-5. Optional: Purge database if needed (in the admin section)
+1. **Unified templating with dynamic context**: Uses a single template per style with dynamic context sections
+2. **Vector-based conversation memory**: Uses embedding-based retrieval for conversation history
+3. **Structured memory management**: Implements multi-tier memory with summary generation
+4. **Dynamic prompt construction**: Adapts prompts based on conversation state
 
-## Customizing the User Interface
-
-The user interface is defined in a single HTML file (`template.html`) that can be easily modified to suit your needs:
-
-1. **Modifying the template**:
-   - Edit the `template.html` file directly
-   - Changes will be reflected the next time you reload the page
-
-2. **Styling**:
-   - CSS styles are defined in the `<style>` section at the top of the HTML file
-   - Modify colors, sizes, spacing, etc. to match your preferred aesthetic
-
-3. **Custom template location**:
-   - By default, the application looks for `template.html` in the project root directory
-   - You can specify a different location by setting the `TEMPLATE_PATH` environment variable:
-     ```
-     TEMPLATE_PATH=/path/to/your/custom-template.html
-     ```
-
-4. **Template sections**:
-   - Query section: For asking questions about embedded documents
-   - Upload section: For uploading and embedding new documents
-   - Admin section: For database management
-
-The template is loaded dynamically on each request, so you don't need to restart the server when making changes to the HTML.
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
+This approach reduces template maintenance burden, improves context relevance, and provides more flexible conversation handling.

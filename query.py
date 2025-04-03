@@ -8,6 +8,8 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
 from langchain_chroma import Chroma
 from prompts import get_template
+from template_manager import TemplateManager
+from context_manager import ContextManager
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -20,13 +22,31 @@ CHROMA_PERSIST_DIR = os.getenv('CHROMA_PERSIST_DIR', './chroma_db')
 OLLAMA_BASE_URL = os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')
 RETRIEVAL_K = int(os.getenv('RETRIEVAL_K', '4'))
 
+# Initialize managers (lazy loading)
+_template_manager = None
+_context_manager = None
+
+def get_template_manager():
+    """Get or create the template manager singleton"""
+    global _template_manager
+    if _template_manager is None:
+        _template_manager = TemplateManager()
+    return _template_manager
+
+def get_context_manager():
+    """Get or create the context manager singleton"""
+    global _context_manager
+    if _context_manager is None:
+        _context_manager = ContextManager(template_manager=get_template_manager())
+    return _context_manager
+
 def query(question: str, template_name: Optional[str] = None, temperature: Optional[float] = None,
-          conversation: Optional[Any] = None) -> Tuple[str, List[str]]:
+          conversation: Optional[Any] = None) -> Tuple[str, List[str], Dict[str, Any]]:
     """
     Query the vector database with a question, optionally using conversation history.
 
-    This enhanced version prioritizes previously generated content for follow-up questions
-    and directly includes relevant previous content in the prompt.
+    This enhanced version uses the ContextManager to dynamically select and format prompts
+    based on conversation context.
 
     Args:
         question (str): The question to ask
@@ -35,7 +55,7 @@ def query(question: str, template_name: Optional[str] = None, temperature: Optio
         conversation (Conversation, optional): Conversation object containing history
 
     Returns:
-        Tuple[str, List[str]]: The model's response and a list of document IDs that were referenced
+        Tuple[str, List[str], Dict[str, Any]]: The model's response, document IDs, and metadata
     """
     try:
         # Use arguments if provided, otherwise fall back to env vars
@@ -45,33 +65,10 @@ def query(question: str, template_name: Optional[str] = None, temperature: Optio
         if temperature is None:
             temperature = float(os.getenv('LLM_TEMPERATURE', '1.0'))
 
-        # Determine the appropriate template based on conversation context
-        has_conversation = conversation is not None and hasattr(conversation, 'get_history') and len(conversation.get_history()) > 0
+        # Get context manager
+        context_manager = get_context_manager()
 
-        # Analyze the query to determine if it's a follow-up question
-        is_follow_up = False
-        previous_content = ""
-
-        if has_conversation:
-            # Check if this is a follow-up question
-            is_follow_up = conversation.is_follow_up_question(question)
-
-            if is_follow_up:
-                # Get relevant previous content
-                previous_content = conversation.get_most_relevant_content(question)
-                logger.info("Detected follow-up question. Including relevant previous content (%d chars)",
-                           len(previous_content))
-
-                # Select the appropriate follow-up template
-                template_name = f"follow_up_{template_name}"
-            else:
-                # For non-follow-up questions with conversation history, use the previous content template
-                template_name = f"{template_name}_with_previous_content"
-                previous_content = conversation.get_most_relevant_content(question)
-                if previous_content:
-                    logger.info("Including potentially relevant previous content (%d chars)", len(previous_content))
-
-        logger.info("Processing query using model %s (temp=%s, template=%s): %s",
+        logger.info("Processing query using model %s (temp=%s, style=%s): %s",
                    LLM_MODEL, temperature, template_name, question)
 
         # Create embeddings and connect to the vector database
@@ -89,7 +86,7 @@ def query(question: str, template_name: Optional[str] = None, temperature: Optio
             logger.info("Connected to ChromaDB at %s", CHROMA_PERSIST_DIR)
         except Exception as db_error:
             logger.error("Error connecting to ChromaDB: %s", str(db_error))
-            return f"Error connecting to the vector database: {str(db_error)}", []
+            return f"Error connecting to the vector database: {str(db_error)}", [], {"error": str(db_error)}
 
         # Create retriever with appropriate settings
         try:
@@ -100,30 +97,7 @@ def query(question: str, template_name: Optional[str] = None, temperature: Optio
             logger.info("Created retriever with k=%s", RETRIEVAL_K)
         except Exception as retriever_error:
             logger.error("Error creating retriever: %s", str(retriever_error))
-            return f"Error setting up document retrieval: {str(retriever_error)}", []
-
-        # Create LLM with the custom model
-        llm = ChatOllama(
-            model=LLM_MODEL,
-            base_url=OLLAMA_BASE_URL,
-            temperature=temperature,
-            system=None,  # Use the model's built-in system prompt
-            num_predict=4096,  # Request longer generations
-            repeat_penalty=1.1  # Slightly penalize repetition
-        )
-        logger.info("Using Ollama LLM with model: %s, temperature: %s", LLM_MODEL, temperature)
-
-        # Load the prompt template based on settings
-        template_text = get_template(template_name)
-        if template_text is None:
-            # Fall back to standard template if the specific template doesn't exist
-            logger.warning("Template %s not found, falling back to standard template", template_name)
-            template_text = get_template("standard")
-
-        logger.info("Using prompt template: %s", template_name)
-
-        prompt = ChatPromptTemplate.from_template(template_text)
-        logger.info("Created prompt template")
+            return f"Error setting up document retrieval: {str(retriever_error)}", [], {"error": str(retriever_error)}
 
         # Get relevant documents
         document_ids = []
@@ -139,42 +113,44 @@ def query(question: str, template_name: Optional[str] = None, temperature: Optio
             docs = []
             logger.warning("Proceeding without document retrieval")
 
+        # Get prompt and context information from context manager
+        context_info = context_manager.get_prompt(
+            query=question,
+            conversation=conversation,
+            retrieved_docs=docs,
+            style=template_name
+        )
+
+        # Extract prompt and metadata
+        prompt_text = context_info["prompt"]
+        system_instruction = context_info["system_instruction"]
+        is_follow_up = context_info["is_follow_up"]
+
+        logger.info("Using %s prompt with query type: %s",
+                   template_name, context_info["query_type"])
+
+        # Create LLM with the custom model
+        llm = ChatOllama(
+            model=LLM_MODEL,
+            base_url=OLLAMA_BASE_URL,
+            temperature=temperature,
+            system=system_instruction or None,  # Use system instruction if available
+            num_predict=4096,  # Request longer generations
+            repeat_penalty=1.1  # Slightly penalize repetition
+        )
+        logger.info("Using Ollama LLM with model: %s, temperature: %s", LLM_MODEL, temperature)
+
+        # Create prompt template
+        prompt = ChatPromptTemplate.from_template(prompt_text)
+        logger.info("Created prompt template")
+
         # Set up the chain using LangChain Expression Language (LCEL)
-        if is_follow_up:
-            # For follow-up questions, prioritize previous content
-            chain = (
-                {
-                    "context": lambda _: "\n".join(doc.page_content for doc in docs) if docs else "No relevant documents found.",
-                    "question": RunnablePassthrough(),
-                    "previous_content": lambda _: previous_content
-                }
-                | prompt
-                | llm
-                | StrOutputParser()
-            )
-        elif has_conversation and previous_content:
-            # For non-follow-up questions with relevant previous content
-            chain = (
-                {
-                    "context": lambda _: "\n".join(doc.page_content for doc in docs) if docs else "No relevant documents found.",
-                    "question": RunnablePassthrough(),
-                    "previous_content": lambda _: previous_content
-                }
-                | prompt
-                | llm
-                | StrOutputParser()
-            )
-        else:
-            # Standard chain without conversation history
-            chain = (
-                {
-                    "context": lambda _: "\n".join(doc.page_content for doc in docs) if docs else "No relevant documents found.",
-                    "question": RunnablePassthrough()
-                }
-                | prompt
-                | llm
-                | StrOutputParser()
-            )
+        chain = (
+            {"question": RunnablePassthrough()}
+            | prompt
+            | llm
+            | StrOutputParser()
+        )
         logger.info("Created retrieval chain")
 
         # Execute the chain
@@ -182,11 +158,12 @@ def query(question: str, template_name: Optional[str] = None, temperature: Optio
         response = chain.invoke(question)
         logger.info("Chain execution complete")
 
-        # Add metadata about the type of query for future reference
+        # Add metadata about the query for future reference
         metadata = {
             "is_follow_up": is_follow_up,
             "template_used": template_name,
-            "has_previous_content": bool(previous_content)
+            "query_type": context_info["query_type"],
+            "has_previous_content": context_info["has_previous_content"]
         }
 
         return response, document_ids, metadata
