@@ -225,7 +225,7 @@ def health_check():
     return jsonify({'status': 'healthy'}), 200
 
 if __name__ == '__main__':
-    port = int(os.getenv('PORT', 8080))
+    port = int(os.getenv('PORT', 8084))
     debug = os.getenv('DEBUG', 'False').lower() == 'true'
 
     logger.info("Starting server on port %d with debug=%s", port, debug)
