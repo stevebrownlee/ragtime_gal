@@ -6,16 +6,15 @@ from dotenv import load_dotenv
 from flask import Flask, request, jsonify, render_template_string, session
 from embed import embed
 from query import query
+from template import load_html_template
 # Import enhanced conversation classes
 from enhanced_conversation import (
-    EnhancedConversation,
     get_enhanced_conversation_from_session as get_conversation_from_session,
     update_enhanced_conversation_in_session as update_conversation_in_session
 )
 from conversation import clear_conversation_in_session
 from langchain_chroma import Chroma
 from langchain_ollama import OllamaEmbeddings
-from template import load_html_template
 
 # Load environment variables
 load_dotenv()
