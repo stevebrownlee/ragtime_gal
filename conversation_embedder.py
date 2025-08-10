@@ -4,7 +4,7 @@ conversation_embedder.py - Vector-based conversation memory
 
 import logging
 import numpy as np
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Tuple
 from langchain_ollama import OllamaEmbeddings
 import os
 

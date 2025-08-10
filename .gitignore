@@ -54,3 +54,8 @@ ollama_models/
 # Local development
 .python-version
 memory-bank/
+
+.roo/
+.roomodes
+context_portal/
+memory-bank/

@@ -1,0 +1,64 @@
+{
+  "mcpServers": {
+    "conport": {
+      "command": "/Users/chortlehoort/Code/Steve/tools/MCP/conport/.venv/bin/python",
+      "args": [
+        "-m",
+        "context_portal_mcp.main",
+        "--mode",
+        "stdio",
+        "--workspace_id",
+        "${workspaceFolder}"
+      ],
+      "alwaysAllow": [
+        "get_product_context",
+        "get_active_context",
+        "update_active_context",
+        "update_product_context",
+        "log_decision",
+        "log_progress",
+        "link_conport_items",
+        "log_system_pattern",
+        "get_decisions",
+        "get_progress",
+        "get_system_patterns",
+        "get_custom_data",
+        "log_custom_data",
+        "get_conport_schema",
+        "batch_log_items",
+        "update_progress",
+        "search_custom_data_value_fts",
+        "get_recent_activity_summary",
+        "list_files"
+      ]
+    },
+    "editor": {
+      "command": "/Users/chortlehoort/.local/share/virtualenvs/ragtime-gal-lpLw0dn6/bin/python",
+      "args": [
+        "/Users/chortlehoort/Code/Steve/ragtime-gal/mcp_standalone.py"
+      ],
+      "env": {
+        "BOOK_DIRECTORY": "/Users/chortlehoort/Code/Steve/ragtime-gal"
+      },
+      "alwaysAllow": [
+        "get_server_status",
+        "test_database_connection",
+        "search_book_content",
+        "get_chapter_info",
+        "list_all_chapters",
+        "analyze_character_mentions",
+        "get_book_structure",
+        "list_all_books",
+        "get_writing_statistics",
+        "analyze_readability",
+        "check_grammar_and_style",
+        "analyze_writing_patterns",
+        "add_chapter_content",
+        "update_chapter_content",
+        "delete_chapter",
+        "delete_book",
+        "reorder_chapters"
+      ]
+    }
+  }
+}

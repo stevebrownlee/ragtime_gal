@@ -1,7 +1,8 @@
-"""Main application file for the Langchain API server """
+"""Main application file for the Langchain API server with MCP integration"""
 import os
 import logging
 import secrets
+import atexit
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify, render_template_string, session
 from embed import embed
@@ -13,11 +14,24 @@ from enhanced_conversation import (
     update_enhanced_conversation_in_session as update_conversation_in_session
 )
 from conversation import clear_conversation_in_session
-from langchain_chroma import Chroma
-from langchain_ollama import OllamaEmbeddings
+
+# Import integration modules
+from shared_db import SharedDatabaseManager
+from mcp_integration import MCPServerManager
+
+# Import Phase 6 enhancements
+from performance_optimizer import get_performance_optimizer, HealthChecker
+from error_handler import (
+    setup_global_error_handling, get_global_error_handler,
+    error_handler_decorator, ErrorCategory, ErrorSeverity
+)
+from documentation_generator import DocumentationGenerator
 
 # Load environment variables
 load_dotenv()
+
+# Set up Phase 6 global error handling
+setup_global_error_handling(os.getenv('LOG_FILE', 'logs/ragtime_gal_errors.log'))
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -26,29 +40,42 @@ logger = logging.getLogger(__name__)
 # Set up constants and directories
 TEMP_FOLDER = os.getenv('TEMP_FOLDER', './_temp')
 CHROMA_PERSIST_DIR = os.getenv('CHROMA_PERSIST_DIR', './chroma_db')
+BOOK_DIRECTORY = os.getenv('BOOK_DIRECTORY', '.')
+MCP_SERVER_NAME = os.getenv('MCP_SERVER_NAME', 'Ragtime Gal MCP Server')
+
 os.makedirs(TEMP_FOLDER, exist_ok=True)
 os.makedirs(CHROMA_PERSIST_DIR, exist_ok=True)
+os.makedirs('logs', exist_ok=True)
+os.makedirs('docs', exist_ok=True)
 
 # Initialize Flask app
 app = Flask(__name__)
 # Set a secret key for session management
 app.secret_key = os.getenv('SECRET_KEY', secrets.token_hex(16))
 
-# Helper function to get vector DB - replaces the imported get_vector_db
+# Initialize shared database manager
+shared_db = SharedDatabaseManager(
+    persist_directory=CHROMA_PERSIST_DIR,
+    embedding_model=os.getenv('EMBEDDING_MODEL', 'mistral'),
+    ollama_base_url=os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')
+)
+
+# Initialize MCP server manager
+mcp_manager = MCPServerManager(shared_db, BOOK_DIRECTORY)
+
+# Initialize Phase 6 components
+performance_optimizer = get_performance_optimizer(shared_db)
+health_checker = HealthChecker(performance_optimizer)
+error_handler = get_global_error_handler()
+doc_generator = DocumentationGenerator('docs')
+
+# Helper function to get vector DB - now uses shared database manager
 def get_vector_db():
-    # pylint: disable=W0718
+    """Get the shared vector database instance."""
     try:
-        # Use local Ollama embeddings instead of OpenAI
-        embeddings = OllamaEmbeddings(
-            model=os.getenv('EMBEDDING_MODEL', 'mistral'),  # Default to mistral model
-            base_url=os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')
-        )
-        return Chroma(
-            persist_directory=CHROMA_PERSIST_DIR,
-            embedding_function=embeddings
-        )
+        return shared_db.get_database()
     except Exception as e:
-        logger.error("Error initializing vector database: %s", e)
+        logger.error("Error getting vector database: %s", e)
         raise
 
 @app.route('/', methods=['GET'])
@@ -183,35 +210,12 @@ def purge_database():
     """Route to delete all documents from the vector database"""
     # pylint: disable=W0718
     try:
-        # Get the vector database
-        embeddings = OllamaEmbeddings(
-            model=os.getenv('EMBEDDING_MODEL', 'mistral'),
-            base_url=os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')
-        )
+        # Use shared database manager to purge
+        deleted_count = shared_db.purge_database()
 
-        db = Chroma(
-            persist_directory=CHROMA_PERSIST_DIR,
-            embedding_function=embeddings
-        )
-
-        # Get all document IDs
-        try:
-            all_ids = db.get()["ids"]
-        except Exception as get_error:
-            logger.error("Error getting document IDs: %s", str(get_error))
-            return jsonify({'error': f'Error accessing database: {str(get_error)}'}), 500
-
-        if all_ids:
-            # Delete documents by their IDs
-            try:
-                db.delete(ids=all_ids)
-                logger.info("Purged %d documents from the database at %s", len(all_ids), CHROMA_PERSIST_DIR)
-                return jsonify({'message': f'Database purged successfully. Removed {len(all_ids)} documents.'}), 200
-            except Exception as delete_error:
-                logger.error("Error deleting documents: %s", str(delete_error))
-                return jsonify({'error': f'Error purging database: {str(delete_error)}'}), 500
+        if deleted_count > 0:
+            return jsonify({'message': f'Database purged successfully. Removed {deleted_count} documents.'}), 200
         else:
-            logger.info("No documents found to purge")
             return jsonify({'message': 'Database is already empty. No documents to purge.'}), 200
 
     except Exception as e:
@@ -219,13 +223,188 @@ def purge_database():
         return jsonify({'error': f'Error purging database: {str(e)}'}), 500
 
 @app.route('/health', methods=['GET'])
+@error_handler_decorator(ErrorCategory.SYSTEM_RESOURCE, ErrorSeverity.MEDIUM)
 def health_check():
-    """Simple health check endpoint"""
-    return jsonify({'status': 'healthy'}), 200
+    """Enhanced health check endpoint with Phase 6 monitoring"""
+    try:
+        # Check database connection
+        db_healthy = shared_db.test_connection()
+
+        # Check MCP server status
+        mcp_healthy = mcp_manager.is_healthy()
+
+        # Get database stats
+        db_stats = shared_db.get_database_stats()
+
+        # Get MCP server status
+        mcp_status = mcp_manager.get_status()
+
+        # Get Phase 6 health information
+        comprehensive_health = health_checker.get_comprehensive_health()
+        performance_stats = performance_optimizer.get_performance_stats()
+        error_stats = error_handler.get_error_statistics()
+
+        overall_status = 'healthy' if db_healthy and mcp_healthy else 'degraded'
+
+        return jsonify({
+            'status': overall_status,
+            'database': {
+                'healthy': db_healthy,
+                'stats': db_stats
+            },
+            'mcp_server': {
+                'healthy': mcp_healthy,
+                'status': mcp_status
+            },
+            'performance': performance_stats,
+            'system_health': comprehensive_health,
+            'error_statistics': {
+                'total_errors': error_stats['total_errors'],
+                'categories': error_stats['categories'],
+                'recent_errors_count': len(error_stats['recent_errors'])
+            }
+        }), 200
+
+    except Exception as e:
+        logger.error("Error in health check: %s", str(e))
+        return jsonify({
+            'status': 'error',
+            'error': str(e)
+        }), 500
+
+@app.route('/mcp-status', methods=['GET'])
+def mcp_status():
+    """Get detailed MCP server status"""
+    try:
+        status = mcp_manager.get_status()
+        return jsonify(status), 200
+    except Exception as e:
+        logger.error("Error getting MCP status: %s", str(e))
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/performance-stats', methods=['GET'])
+@error_handler_decorator(ErrorCategory.SYSTEM_RESOURCE, ErrorSeverity.LOW)
+def performance_stats():
+    """Get detailed performance statistics"""
+    try:
+        stats = performance_optimizer.get_performance_stats()
+        return jsonify(stats), 200
+    except Exception as e:
+        logger.error("Error getting performance stats: %s", str(e))
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/error-statistics', methods=['GET'])
+@error_handler_decorator(ErrorCategory.SYSTEM_RESOURCE, ErrorSeverity.LOW)
+def error_statistics():
+    """Get detailed error statistics"""
+    try:
+        stats = error_handler.get_error_statistics()
+        return jsonify(stats), 200
+    except Exception as e:
+        logger.error("Error getting error statistics: %s", str(e))
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/clear-cache', methods=['POST'])
+@error_handler_decorator(ErrorCategory.SYSTEM_RESOURCE, ErrorSeverity.MEDIUM)
+def clear_cache():
+    """Clear performance cache"""
+    try:
+        performance_optimizer.clear_cache()
+        return jsonify({'message': 'Cache cleared successfully'}), 200
+    except Exception as e:
+        logger.error("Error clearing cache: %s", str(e))
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/clear-error-history', methods=['POST'])
+@error_handler_decorator(ErrorCategory.SYSTEM_RESOURCE, ErrorSeverity.MEDIUM)
+def clear_error_history():
+    """Clear error history"""
+    try:
+        error_handler.clear_error_history()
+        return jsonify({'message': 'Error history cleared successfully'}), 200
+    except Exception as e:
+        logger.error("Error clearing error history: %s", str(e))
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/generate-docs', methods=['POST'])
+@error_handler_decorator(ErrorCategory.SYSTEM_RESOURCE, ErrorSeverity.MEDIUM)
+def generate_documentation():
+    """Generate comprehensive documentation"""
+    try:
+        generated_files = doc_generator.generate_all_documentation(mcp_manager, app)
+        return jsonify({
+            'message': 'Documentation generated successfully',
+            'files': generated_files
+        }), 200
+    except Exception as e:
+        logger.error("Error generating documentation: %s", str(e))
+        return jsonify({'error': str(e)}), 500
+
+def start_mcp_server():
+    """Start the MCP server and Phase 6 components during Flask startup"""
+    try:
+        logger.info("Starting MCP server...")
+        if mcp_manager.start():
+            logger.info("MCP server started successfully")
+        else:
+            logger.error("Failed to start MCP server")
+
+        # Start health monitoring
+        logger.info("Starting health monitoring...")
+        health_checker.start_monitoring()
+        logger.info("Health monitoring started")
+
+        # Log startup completion
+        logger.info("Phase 6 enhanced RAG+MCP server startup completed")
+
+    except Exception as e:
+        error_handler.handle_error(e, ErrorCategory.MCP_SERVER, ErrorSeverity.CRITICAL)
+        logger.error("Error starting MCP server: %s", str(e))
+
+def shutdown_mcp_server():
+    """Shutdown the MCP server and Phase 6 components during Flask shutdown"""
+    try:
+        logger.info("Shutting down Phase 6 enhanced server...")
+
+        # Stop health monitoring
+        health_checker.stop_monitoring()
+        logger.info("Health monitoring stopped")
+
+        # Shutdown MCP server
+        logger.info("Shutting down MCP server...")
+        if mcp_manager.stop():
+            logger.info("MCP server stopped successfully")
+        else:
+            logger.error("Failed to stop MCP server gracefully")
+
+        # Generate final performance report
+        try:
+            final_stats = performance_optimizer.get_performance_stats()
+            logger.info("Final performance stats: %s", final_stats)
+        except Exception as stats_error:
+            logger.warning("Could not generate final performance stats: %s", stats_error)
+
+        logger.info("Phase 6 enhanced server shutdown completed")
+
+    except Exception as e:
+        error_handler.handle_error(e, ErrorCategory.MCP_SERVER, ErrorSeverity.HIGH)
+        logger.error("Error stopping MCP server: %s", str(e))
+
+# Register shutdown handler
+atexit.register(shutdown_mcp_server)
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 8084))
     debug = os.getenv('DEBUG', 'False').lower() == 'true'
 
-    logger.info("Starting server on port %d with debug=%s", port, debug)
-    app.run(host='0.0.0.0', port=port, debug=debug)
+    logger.info("Starting unified RAG + MCP server on port %d with debug=%s", port, debug)
+
+    # Start MCP server
+    start_mcp_server()
+
+    try:
+        app.run(host='0.0.0.0', port=port, debug=debug)
+    except KeyboardInterrupt:
+        logger.info("Received shutdown signal")
+    finally:
+        shutdown_mcp_server()
