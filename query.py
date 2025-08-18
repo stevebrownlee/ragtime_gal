@@ -128,16 +128,26 @@ def query(question: str, template_name: Optional[str] = None, temperature: Optio
         logger.info("Using %s prompt with query type: %s",
                    template_name, context_info["query_type"])
 
-        # Create LLM with the custom model
+        # Create LLM with the custom model and enhanced parameters for longer outputs
+        max_output_tokens = int(os.getenv('MAX_OUTPUT_TOKENS', '16384'))  # Much higher default for longer outputs
+        repeat_penalty = float(os.getenv('REPEAT_PENALTY', '1.1'))
+        top_k = int(os.getenv('TOP_K', '40'))
+        top_p = float(os.getenv('TOP_P', '0.9'))
+
         llm = ChatOllama(
             model=LLM_MODEL,
             base_url=OLLAMA_BASE_URL,
             temperature=temperature,
             system=system_instruction or None,  # Use system instruction if available
-            num_predict=4096,  # Request longer generations
-            repeat_penalty=1.1  # Slightly penalize repetition
+            num_predict=max_output_tokens,  # Configurable token limit for much longer responses
+            repeat_penalty=repeat_penalty,  # Configurable repetition penalty
+            top_k=top_k,  # Control diversity of token selection
+            top_p=top_p,  # Nucleus sampling for better quality
+            num_ctx=32768,  # Larger context window
+            format="",  # Allow free-form responses
+            verbose=True  # More detailed logging
         )
-        logger.info("Using Ollama LLM with model: %s, temperature: %s", LLM_MODEL, temperature)
+        logger.info("Using Ollama LLM with model: %s, temperature: %s, max_tokens: %d", LLM_MODEL, temperature, max_output_tokens)
 
         # Create prompt template
         prompt = ChatPromptTemplate.from_template(prompt_text)

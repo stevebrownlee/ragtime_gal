@@ -16,6 +16,12 @@ python-dotenv = "*"
 werkzeug = "*"
 langchain-core = "*"
 pypdf = "*"
+# MCP dependencies
+mcp = "*"
+# NLP dependencies for book analysis
+spacy = "*"
+textstat = "*"
+language-tool-python = "*"
 
 [dev-packages]
 black = "*"
