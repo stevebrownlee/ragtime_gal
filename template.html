@@ -257,6 +257,24 @@
     <div class="form-container">
         <h2>Upload Documents</h2>
         <form id="uploadForm" enctype="multipart/form-data">
+            <div class="collection-selection" style="margin-bottom: 20px;">
+                <h3>Collection Selection</h3>
+                <div style="display: flex; gap: 15px; align-items: end;">
+                    <div style="flex: 1;">
+                        <label for="existingCollections">Choose existing collection:</label>
+                        <select id="existingCollections" name="existing_collection">
+                            <option value="">Loading collections...</option>
+                        </select>
+                    </div>
+                    <div style="flex: 1;">
+                        <label for="newCollectionName">Or create new collection:</label>
+                        <input type="text" id="newCollectionName" name="new_collection" placeholder="Enter new collection name">
+                    </div>
+                </div>
+                <p style="font-size: 0.9em; color: #666; margin-top: 10px;">
+                    Choose an existing collection or enter a new name. If both are provided, the new collection name will be used.
+                </p>
+            </div>
             <div id="dropzone" class="dropzone">
                 <p>Drag and drop PDF or Markdown files here, or click to select files</p>
                 <input type="file" id="pdfFile" name="file" accept=".pdf,.md" multiple style="display: none;">
@@ -291,6 +309,8 @@
         const clearHistoryButton = document.getElementById('clearHistoryButton');
         const toggleHistoryButton = document.getElementById('toggleHistory');
         const conversationHistoryDiv = document.getElementById('conversationHistory');
+        const existingCollectionsSelect = document.getElementById('existingCollections');
+        const newCollectionNameInput = document.getElementById('newCollectionName');
 
         // Track selected files
         let selectedFiles = [];
@@ -298,6 +318,8 @@
         let conversationActive = false;
         // Track conversation history
         let conversationHistory = [];
+        // Track available collections
+        let availableCollections = [];
 
         // Handle drag and drop events
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -368,6 +390,61 @@
             updateFileList();
         }
 
+        // Load available collections
+        async function loadCollections() {
+            try {
+                const response = await fetch('/collections');
+                const result = await response.json();
+
+                if (response.ok) {
+                    availableCollections = result.collections;
+                    updateCollectionsSelect();
+                } else {
+                    console.error('Error loading collections:', result.error);
+                    existingCollectionsSelect.innerHTML = '<option value="">Error loading collections</option>';
+                }
+            } catch (error) {
+                console.error('Error loading collections:', error);
+                existingCollectionsSelect.innerHTML = '<option value="">Error loading collections</option>';
+            }
+        }
+
+        // Update the collections select dropdown
+        function updateCollectionsSelect() {
+            existingCollectionsSelect.innerHTML = '<option value="">Select existing collection...</option>';
+
+            if (availableCollections.length === 0) {
+                existingCollectionsSelect.innerHTML = '<option value="">No collections found</option>';
+                return;
+            }
+
+            availableCollections.forEach(collection => {
+                const option = document.createElement('option');
+                option.value = collection.name;
+                option.textContent = `${collection.name} (${collection.document_count} docs)`;
+                existingCollectionsSelect.appendChild(option);
+            });
+        }
+
+        // Get the selected collection name
+        function getSelectedCollectionName() {
+            const newCollectionName = newCollectionNameInput.value.trim();
+            const existingCollectionName = existingCollectionsSelect.value;
+
+            // Prioritize new collection name if provided
+            if (newCollectionName) {
+                return newCollectionName;
+            }
+
+            // Fall back to existing collection selection
+            if (existingCollectionName) {
+                return existingCollectionName;
+            }
+
+            // Default to 'langchain' if nothing is selected
+            return 'langchain';
+        }
+
         function updateFileList() {
             if (selectedFiles.length > 0) {
                 fileList.style.display = 'block';
@@ -404,8 +481,11 @@
                 return;
             }
 
+            // Get the selected collection name
+            const collectionName = getSelectedCollectionName();
+
             uploadResponse.style.display = 'block';
-            uploadResponse.textContent = 'Uploading and embedding files...';
+            uploadResponse.textContent = `Uploading and embedding files to collection "${collectionName}"...`;
             uploadButton.disabled = true;
 
             let successCount = 0;
@@ -416,6 +496,7 @@
                 const file = selectedFiles[i];
                 const formData = new FormData();
                 formData.append('file', file);
+                formData.append('collection_name', collectionName);
 
                 try {
                     uploadResponse.textContent = `Processing file ${i+1} of ${selectedFiles.length}: ${file.name}`;
@@ -448,10 +529,12 @@
             uploadResponse.style.borderLeft = errorCount === 0 ? '4px solid #4CAF50' : '4px solid #f44336';
             uploadButton.disabled = false;
 
-            // Clear file list after successful upload
+            // Clear file list after successful upload and refresh collections
             if (errorCount === 0) {
                 selectedFiles = [];
                 updateFileList();
+                // Refresh collections list to show the new collection if created
+                loadCollections();
             }
         });
 
@@ -672,6 +755,7 @@
 
         // Initialize
         checkConversationStatus();
+        loadCollections();
     </script>
 </body>
 </html>

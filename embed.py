@@ -34,8 +34,8 @@ def save_file(file):
     logger.info("Saved file to %s", file_path)
     return file_path
 
-def embed(file):
-    """Embed the uploaded file into the vector database"""
+def embed(file, collection_name='langchain'):
+    """Embed the uploaded file into the vector database with specified collection name"""
     try:
         if file.filename == '' or not allowed_file(file.filename):
             logger.warning("Invalid file: %s", file.filename)
@@ -98,13 +98,14 @@ def embed(file):
         )
         logger.info("Using Ollama embeddings with model: %s", EMBEDDING_MODEL)
 
-        # Store in ChromaDB
+        # Store in ChromaDB with specified collection name
         db = Chroma.from_documents(
             documents=chunks,
             embedding=embeddings,
-            persist_directory=CHROMA_PERSIST_DIR
+            persist_directory=CHROMA_PERSIST_DIR,
+            collection_name=collection_name
         )
-        logger.info("Embedded documents stored in ChromaDB at %s", CHROMA_PERSIST_DIR)
+        logger.info("Embedded documents stored in ChromaDB collection '%s' at %s", collection_name, CHROMA_PERSIST_DIR)
 
         # Clean up temp file
         os.remove(file_path)

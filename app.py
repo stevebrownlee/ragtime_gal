@@ -68,9 +68,23 @@ def route_embed():
         if file.filename == '':
             return jsonify({'error': 'No selected file'}), 400
 
-        embedded = embed(file)
+        # Get collection name from form data (optional)
+        collection_name = request.form.get('collection_name', 'langchain')
+
+        # Validate collection name (basic validation)
+        if not collection_name or not collection_name.strip():
+            collection_name = 'langchain'
+        else:
+            # Clean the collection name (remove special characters, spaces)
+            import re
+            collection_name = re.sub(r'[^a-zA-Z0-9_-]', '_', collection_name.strip())
+
+        embedded = embed(file, collection_name)
         if embedded:
-            return jsonify({'message': 'File embedded successfully'}), 200
+            return jsonify({
+                'message': f'File embedded successfully into collection "{collection_name}"',
+                'collection_name': collection_name
+            }), 200
 
         return jsonify({'error': 'File embedded unsuccessfully'}), 400
 
@@ -217,6 +231,47 @@ def purge_database():
     except Exception as e:
         logger.error("Error purging database: %s", str(e))
         return jsonify({'error': f'Error purging database: {str(e)}'}), 500
+
+@app.route('/collections', methods=['GET'])
+def get_collections():
+    """Route to get all available collections in the database"""
+    # pylint: disable=W0718
+    try:
+        # Get the vector database
+        embeddings = OllamaEmbeddings(
+            model=os.getenv('EMBEDDING_MODEL', 'mistral'),
+            base_url=os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')
+        )
+
+        # Connect to ChromaDB directly to list collections
+        import chromadb
+        chroma_client = chromadb.PersistentClient(path=CHROMA_PERSIST_DIR)
+
+        collections = chroma_client.list_collections()
+        collection_info = []
+
+        for collection in collections:
+            try:
+                count = collection.count()
+                collection_info.append({
+                    "name": collection.name,
+                    "document_count": count
+                })
+            except Exception as e:
+                logger.error("Error getting count for collection %s: %s", collection.name, str(e))
+                collection_info.append({
+                    "name": collection.name,
+                    "document_count": 0
+                })
+
+        return jsonify({
+            'collections': collection_info,
+            'total_collections': len(collections)
+        }), 200
+
+    except Exception as e:
+        logger.error("Error getting collections: %s", str(e))
+        return jsonify({'error': f'Error getting collections: {str(e)}'}), 500
 
 @app.route('/health', methods=['GET'])
 def health_check():
