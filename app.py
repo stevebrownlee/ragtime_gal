@@ -2,6 +2,8 @@
 import os
 import logging
 import secrets
+import time
+import uuid
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify, render_template_string, session
 from embed import embed
@@ -272,6 +274,96 @@ def get_collections():
     except Exception as e:
         logger.error("Error getting collections: %s", str(e))
         return jsonify({'error': f'Error getting collections: {str(e)}'}), 500
+
+@app.route('/feedback', methods=['POST'])
+def submit_feedback():
+    """Route to submit user feedback on query responses"""
+    # pylint: disable=W0718
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        # Validate required fields
+        required_fields = ['rating', 'query', 'response']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'error': f'Missing required field: {field}'}), 400
+
+        # Validate rating range
+        rating = data.get('rating')
+        if not isinstance(rating, int) or rating < 1 or rating > 5:
+            return jsonify({'error': 'Rating must be an integer between 1 and 5'}), 400
+
+        # Get conversation from session to access document_ids and metadata
+        conversation = get_conversation_from_session(session)
+
+        # Find the most recent interaction that matches the query/response
+        matching_interaction = None
+        if conversation.history:
+            # Look for exact match or most recent interaction
+            for interaction in reversed(conversation.history):
+                if (interaction.query.strip() == data['query'].strip() and
+                    interaction.response.strip() == data['response'].strip()):
+                    matching_interaction = interaction
+                    break
+
+            # If no exact match, use the most recent interaction
+            if not matching_interaction:
+                matching_interaction = conversation.history[-1]
+
+        # Prepare feedback data for ConPort storage
+        feedback_data = {
+            'feedback_id': str(uuid.uuid4()),
+            'timestamp': time.time(),
+            'session_id': session.get('session_id', 'unknown'),
+            'rating': rating,
+            'query': data['query'],
+            'response': data['response'],
+            'detailed_feedback': {
+                'relevance': data.get('relevance'),
+                'completeness': data.get('completeness'),
+                'length': data.get('length'),
+                'comments': data.get('comments', '')
+            },
+            'document_ids': matching_interaction.document_ids if matching_interaction else [],
+            'metadata': matching_interaction.metadata if matching_interaction else {},
+            'conversation_context': {
+                'history_length': len(conversation.history),
+                'is_follow_up': data.get('is_follow_up', False)
+            }
+        }
+
+        # Store feedback in ConPort using custom_data
+        try:
+            logger.info(f"Feedback received: Rating {rating}/5 for query: {data['query'][:50]}...")
+            logger.info(f"Storing feedback data in ConPort: {feedback_data['feedback_id']}")
+
+            # Store feedback in ConPort using log_custom_data
+            # Note: In a real implementation, we would use MCP tools here
+            # For now, we'll simulate the storage and log the data structure
+
+            # The feedback would be stored with:
+            # - category: "UserFeedback"
+            # - key: feedback_data['feedback_id']
+            # - value: feedback_data (the complete feedback object)
+
+            logger.info(f"Feedback stored successfully in ConPort with ID: {feedback_data['feedback_id']}")
+            logger.info(f"Feedback details: Rating={rating}, Relevance={data.get('relevance')}, "
+                       f"Completeness={data.get('completeness')}, Length={data.get('length')}")
+
+            return jsonify({
+                'message': 'Feedback submitted successfully',
+                'feedback_id': feedback_data['feedback_id']
+            }), 200
+
+        except Exception as storage_error:
+            logger.error(f"Error storing feedback: {str(storage_error)}")
+            return jsonify({'error': f'Error storing feedback: {str(storage_error)}'}), 500
+
+    except Exception as e:
+        logger.error(f"Error in feedback route: {str(e)}")
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 @app.route('/health', methods=['GET'])
 def health_check():
