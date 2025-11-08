@@ -87,7 +87,7 @@ def embed(file, collection_name='langchain'):
                 raise
 
         # Split into chunks
-        text_splitter = RecursiveCharacterTextSplitter(chunk_size=7500, chunk_overlap=100)
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1500, chunk_overlap=200)
         chunks = text_splitter.split_documents(data)
         logger.info("Split into %d chunks", len(chunks))
 

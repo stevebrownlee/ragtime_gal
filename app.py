@@ -6,6 +6,7 @@ import time
 import uuid
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify, render_template_string, session
+import markdown
 from embed import embed
 from query import query
 from template import load_html_template
@@ -17,6 +18,8 @@ from enhanced_conversation import (
 from conversation import clear_conversation_in_session
 from langchain_chroma import Chroma
 from langchain_ollama import OllamaEmbeddings
+# Import ConPort client
+from conport_client import get_conport_client, initialize_conport_client
 
 # Load environment variables
 load_dotenv()
@@ -35,6 +38,9 @@ os.makedirs(CHROMA_PERSIST_DIR, exist_ok=True)
 app = Flask(__name__)
 # Set a secret key for session management
 app.secret_key = os.getenv('SECRET_KEY', secrets.token_hex(16))
+
+# Initialize ConPort client
+conport_client = initialize_conport_client(workspace_id=os.getcwd())
 
 # Helper function to get vector DB - replaces the imported get_vector_db
 def get_vector_db():
@@ -106,6 +112,7 @@ def route_query():
         # Extract optional parameters if provided
         template_name = data.get('template')  # Optional template name
         temperature = data.get('temperature')  # Optional temperature
+        collection_name = data.get('collection', "langchain")
 
         # Convert temperature to float if provided
         if temperature is not None:
@@ -128,7 +135,8 @@ def route_query():
                 data.get('query'),
                 template_name=template_name,
                 temperature=temperature,
-                conversation=conversation
+                conversation=conversation,
+                collection_name=collection_name
             )
 
             # Check if response starts with an error message
@@ -149,9 +157,15 @@ def route_query():
             logger.info("Updated conversation in session (new history length: %d)",
                        len(conversation.get_history()))
 
+            # Convert markdown response to HTML with extensions for better formatting
+            html_response = markdown.markdown(
+                response,
+                extensions=['extra', 'codehilite', 'fenced_code', 'tables']
+            )
+
             # Return response with additional metadata about the conversation
             return jsonify({
-                'message': response,
+                'message': html_response,
                 'conversation_active': True,
                 'is_follow_up': metadata.get('is_follow_up', False),
                 'history_length': len(conversation.get_history())
@@ -196,39 +210,45 @@ def conversation_status():
 
 @app.route('/purge', methods=['POST'])
 def purge_database():
-    """Route to delete all documents from the vector database"""
+    """Route to delete all documents from all collections in the vector database"""
     # pylint: disable=W0718
     try:
-        # Get the vector database
-        embeddings = OllamaEmbeddings(
-            model=os.getenv('EMBEDDING_MODEL', 'mistral'),
-            base_url=os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')
-        )
+        # Connect to ChromaDB directly to list and delete all collections
+        import chromadb
+        chroma_client = chromadb.PersistentClient(path=CHROMA_PERSIST_DIR)
 
-        db = Chroma(
-            persist_directory=CHROMA_PERSIST_DIR,
-            embedding_function=embeddings
-        )
+        # Get all collections
+        collections = chroma_client.list_collections()
 
-        # Get all document IDs
-        try:
-            all_ids = db.get()["ids"]
-        except Exception as get_error:
-            logger.error("Error getting document IDs: %s", str(get_error))
-            return jsonify({'error': f'Error accessing database: {str(get_error)}'}), 500
+        if not collections:
+            logger.info("No collections found to purge")
+            return jsonify({'message': 'Database is already empty. No collections to purge.'}), 200
 
-        if all_ids:
-            # Delete documents by their IDs
+        total_documents = 0
+        deleted_collections = []
+
+        # Delete each collection
+        for collection in collections:
             try:
-                db.delete(ids=all_ids)
-                logger.info("Purged %d documents from the database at %s", len(all_ids), CHROMA_PERSIST_DIR)
-                return jsonify({'message': f'Database purged successfully. Removed {len(all_ids)} documents.'}), 200
+                collection_name = collection.name
+                doc_count = collection.count()
+                total_documents += doc_count
+
+                # Delete the entire collection
+                chroma_client.delete_collection(name=collection_name)
+                deleted_collections.append(f"{collection_name} ({doc_count} documents)")
+                logger.info("Deleted collection '%s' with %d documents", collection_name, doc_count)
             except Exception as delete_error:
-                logger.error("Error deleting documents: %s", str(delete_error))
-                return jsonify({'error': f'Error purging database: {str(delete_error)}'}), 500
-        else:
-            logger.info("No documents found to purge")
-            return jsonify({'message': 'Database is already empty. No documents to purge.'}), 200
+                logger.error("Error deleting collection %s: %s", collection_name, str(delete_error))
+                return jsonify({'error': f'Error deleting collection {collection_name}: {str(delete_error)}'}), 500
+
+        logger.info("Purged %d collections with %d total documents from %s",
+                   len(deleted_collections), total_documents, CHROMA_PERSIST_DIR)
+
+        return jsonify({
+            'message': f'Database purged successfully. Removed {len(deleted_collections)} collections with {total_documents} total documents.',
+            'deleted_collections': deleted_collections
+        }), 200
 
     except Exception as e:
         logger.error("Error purging database: %s", str(e))
@@ -340,22 +360,30 @@ def submit_feedback():
             logger.info(f"Storing feedback data in ConPort: {feedback_data['feedback_id']}")
 
             # Store feedback in ConPort using log_custom_data
-            # Note: In a real implementation, we would use MCP tools here
-            # For now, we'll simulate the storage and log the data structure
+            success = conport_client.log_custom_data(
+                category="UserFeedback",
+                key=feedback_data['feedback_id'],
+                value=feedback_data,
+                metadata={
+                    'rating': rating,
+                    'timestamp': feedback_data['timestamp'],
+                    'session_id': feedback_data['session_id']
+                }
+            )
 
-            # The feedback would be stored with:
-            # - category: "UserFeedback"
-            # - key: feedback_data['feedback_id']
-            # - value: feedback_data (the complete feedback object)
+            if success:
+                logger.info(f"Feedback stored successfully in ConPort with ID: {feedback_data['feedback_id']}")
+                logger.info(f"Feedback details: Rating={rating}, Relevance={data.get('relevance')}, "
+                           f"Completeness={data.get('completeness')}, Length={data.get('length')}")
 
-            logger.info(f"Feedback stored successfully in ConPort with ID: {feedback_data['feedback_id']}")
-            logger.info(f"Feedback details: Rating={rating}, Relevance={data.get('relevance')}, "
-                       f"Completeness={data.get('completeness')}, Length={data.get('length')}")
-
-            return jsonify({
-                'message': 'Feedback submitted successfully',
-                'feedback_id': feedback_data['feedback_id']
-            }), 200
+                return jsonify({
+                    'message': 'Feedback submitted successfully',
+                    'feedback_id': feedback_data['feedback_id'],
+                    'storage_method': 'conport' if conport_client.is_client_available() else 'local_backup'
+                }), 200
+            else:
+                logger.error("Failed to store feedback in ConPort")
+                return jsonify({'error': 'Failed to store feedback'}), 500
 
         except Exception as storage_error:
             logger.error(f"Error storing feedback: {str(storage_error)}")
@@ -365,10 +393,97 @@ def submit_feedback():
         logger.error(f"Error in feedback route: {str(e)}")
         return jsonify({'error': f'Server error: {str(e)}'}), 500
 
+@app.route('/feedback/analytics', methods=['GET'])
+def get_feedback_analytics():
+    """Route to get feedback analytics and insights"""
+    # pylint: disable=W0718
+    try:
+        # Get query parameters
+        days_back = request.args.get('days_back', 30, type=int)
+        min_rating = request.args.get('min_rating', type=int)
+
+        # Import here to avoid circular imports
+        from feedback_analyzer import create_feedback_analyzer
+
+        # Create feedback analyzer with ConPort client
+        analyzer = create_feedback_analyzer(
+            conport_client=conport_client,
+            workspace_id=conport_client.get_workspace_id()
+        )
+
+        # Get feedback data and analyze patterns
+        feedback_data = analyzer.get_feedback_data(days_back=days_back, min_rating=min_rating)
+
+        if not feedback_data:
+            return jsonify({
+                'summary': {
+                    'total_feedback': 0,
+                    'average_rating': 0,
+                    'message': 'No feedback data available'
+                },
+                'insights': {
+                    'recommendations': 'Collect more feedback to generate insights'
+                }
+            }), 200
+
+        # Analyze rating patterns
+        analysis = analyzer.analyze_rating_patterns(feedback_data)
+
+        # Get successful patterns
+        patterns = analyzer.identify_successful_patterns(days_back=days_back)
+
+        return jsonify({
+            'summary': {
+                'total_feedback': analysis.get('total_feedback', 0),
+                'average_rating': round(analysis.get('average_rating', 0), 2),
+                'rating_distribution': analysis.get('rating_distribution', {}),
+                'high_rated_percentage': round(analysis.get('high_rated_percentage', 0), 1)
+            },
+            'successful_patterns': analysis.get('successful_query_characteristics', {}),
+            'problematic_patterns': analysis.get('problematic_query_characteristics', {}),
+            'recommendations': patterns.get('recommendations', {}),
+            'insights': {
+                'analysis_period': f'{days_back} days',
+                'data_quality': 'good' if len(feedback_data) > 10 else 'limited',
+                'trends': 'positive' if analysis.get('average_rating', 0) >= 3.5 else 'needs_improvement'
+            }
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error getting feedback analytics: {str(e)}")
+        return jsonify({'error': f'Error getting feedback analytics: {str(e)}'}), 500
+
+@app.route('/feedback/summary', methods=['GET'])
+def get_feedback_summary():
+    """Route to get a quick feedback summary"""
+    # pylint: disable=W0718
+    try:
+        days_back = request.args.get('days_back', 7, type=int)
+
+        # Import here to avoid circular imports
+        from feedback_analyzer import create_feedback_analyzer
+
+        # Create feedback analyzer with ConPort client
+        analyzer = create_feedback_analyzer(
+            conport_client=conport_client,
+            workspace_id=conport_client.get_workspace_id()
+        )
+
+        summary = analyzer.get_feedback_summary(days_back=days_back)
+        return jsonify(summary), 200
+
+    except Exception as e:
+        logger.error(f"Error getting feedback summary: {str(e)}")
+        return jsonify({'error': f'Error getting feedback summary: {str(e)}'}), 500
+
 @app.route('/health', methods=['GET'])
 def health_check():
     """Simple health check endpoint"""
-    return jsonify({'status': 'healthy'}), 200
+    return jsonify({
+        'status': 'healthy',
+        'conport_available': conport_client.is_client_available(),
+        'workspace_id': conport_client.get_workspace_id()
+    }), 200
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 8084))

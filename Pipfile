@@ -16,6 +16,7 @@ python-dotenv = "*"
 werkzeug = "*"
 langchain-core = "*"
 pypdf = "*"
+markdown = "*"
 # MCP dependencies
 mcp = "*"
 # NLP dependencies for book analysis

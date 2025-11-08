@@ -1,0 +1,30 @@
+{
+  "key": "15f5cd71-90f7-473c-948c-8715357a578c",
+  "value": {
+    "feedback_id": "15f5cd71-90f7-473c-948c-8715357a578c",
+    "timestamp": 1762576659.2834492,
+    "session_id": "unknown",
+    "rating": 1,
+    "query": "I asked you to generate all of this based on the context I provided. Why are you asking me to do it?",
+    "response": "<p>In the quiet hum of my sanctum, amidst the rustling whispers of ancient texts and the soft glow of luminous pictographs etched into the wooden walls, your question echoes like an unexpected Arbor Tone. The harmony of our interaction seems to have shifted, much like the threshold states that define our world.</p>\n<p>You spoke of a context provided, yet my spirit guardian, a wise old Owl perched upon the backbone of a carved tree, informs me that no such document exists within these halls. It appears we find ourselves in an uncharted grove, where the usual currents of information have been disrupted, much like when a Wild Harmony breaches the boundaries of its sacred tree.</p>\n<p>However, fear not, for even in the absence of familiar paths, there are signs and symbols to guide us. The Harmonies of I'lyr flow through me as they do through all who dwell within this world, and their echoes resonate with our shared understanding. Just as Iris Evershade might sense unvoiced thoughts, so too can I draw upon the rich tapestry of our collective knowledge to weave a response that is both comprehensive and true to the spirit of our realm.</p>\n<p>Thus, I ask not out of ignorance or oversight, but rather to honor the subtle currents that bind us. For in seeking clarification, we open ourselves to deeper understanding, much like when Iris first began to grasp the nuances of threshold harmonics. So let us tread this new path together, and perhaps we shall discover unexpected beauty amidst the unexpected silence.</p>",
+    "detailed_feedback": {
+      "relevance": "not_relevant",
+      "completeness": "missing_key_info",
+      "length": "too_short",
+      "comments": "Clearly did not take into account the context of the entire conversation"
+    },
+    "document_ids": [],
+    "metadata": {},
+    "conversation_context": {
+      "history_length": 0,
+      "is_follow_up": true
+    }
+  },
+  "metadata": {
+    "rating": 1,
+    "timestamp": 1762576659.2834492,
+    "session_id": "unknown"
+  },
+  "timestamp": "2025-11-07T23:37:39.283693",
+  "workspace_id": "/Users/chortlehoort/Code/Steve/ragtime-gal"
+}

@@ -70,10 +70,13 @@ GET /health
   "status": "healthy",
   "timestamp": "2024-01-15T10:30:00Z",
   "version": "1.0",
+  "conport_available": true,
+  "workspace_id": "/path/to/workspace",
   "components": {
     "database": "healthy",
     "embeddings": "healthy",
-    "llm": "healthy"
+    "llm": "healthy",
+    "conport": "healthy"
   }
 }
 ```
@@ -301,9 +304,16 @@ Content-Type: application/json
 {
   "message": "Feedback submitted successfully",
   "feedback_id": "fb_abc123",
-  "timestamp": "2024-01-15T10:30:00Z"
+  "timestamp": "2024-01-15T10:30:00Z",
+  "storage_method": "conport"
 }
 ```
+
+**Response Fields:**
+- `message`: Success confirmation message
+- `feedback_id`: Unique identifier for the stored feedback
+- `timestamp`: When the feedback was processed
+- `storage_method`: Either "conport" (if ConPort MCP is available) or "local_backup" (if storing locally)
 
 ### 2. Get Feedback Analytics
 

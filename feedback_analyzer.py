@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from collections import defaultdict, Counter
 import statistics
 import json
+from conport_client import get_conport_client
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -30,8 +31,8 @@ class FeedbackAnalyzer:
             conport_client: ConPort MCP client for data access
             workspace_id: Workspace identifier for ConPort operations
         """
-        self.conport_client = conport_client
-        self.workspace_id = workspace_id
+        self.conport_client = conport_client or get_conport_client(workspace_id)
+        self.workspace_id = workspace_id or self.conport_client.get_workspace_id()
         self.feedback_cache = {}
         self.analysis_cache = {}
 
@@ -47,8 +48,8 @@ class FeedbackAnalyzer:
             List of feedback entries
         """
         try:
-            if not self.conport_client or not self.workspace_id:
-                logger.warning("ConPort client or workspace_id not configured")
+            if not self.conport_client:
+                logger.warning("ConPort client not configured")
                 return []
 
             # Search for feedback data in ConPort
@@ -369,4 +370,6 @@ def create_feedback_analyzer(conport_client=None, workspace_id: str = None) -> F
     Returns:
         FeedbackAnalyzer instance
     """
+    if conport_client is None:
+        conport_client = get_conport_client(workspace_id)
     return FeedbackAnalyzer(conport_client=conport_client, workspace_id=workspace_id)

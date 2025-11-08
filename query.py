@@ -59,9 +59,14 @@ def get_query_enhancer(feedback_analyzer=None):
         _query_enhancer = create_query_enhancer(feedback_analyzer=feedback_analyzer)
     return _query_enhancer
 
-def query(question: str, template_name: Optional[str] = None, temperature: Optional[float] = None,
-          conversation: Optional[Any] = None, use_feedback_optimization: bool = True,
-          conport_client=None, workspace_id: Optional[str] = None) -> Tuple[str, List[str], Dict[str, Any]]:
+def query(question: str,
+          template_name: Optional[str] = None,
+          temperature: Optional[float] = None,
+          conversation: Optional[Any] = None,
+          collection_name: Optional[str] = None,
+          use_feedback_optimization: bool = True,
+          conport_client=None,
+          workspace_id: Optional[str] = None) -> Tuple[str, List[str], Dict[str, Any]]:
     """
     Query the vector database with a question, optionally using conversation history and feedback optimization.
 
@@ -130,7 +135,8 @@ def query(question: str, template_name: Optional[str] = None, temperature: Optio
         try:
             db = Chroma(
                 persist_directory=CHROMA_PERSIST_DIR,
-                embedding_function=embeddings
+                embedding_function=embeddings,
+                collection_name=collection_name or 'langchain'
             )
             logger.info("Connected to ChromaDB at %s", CHROMA_PERSIST_DIR)
         except Exception as db_error:
@@ -145,14 +151,14 @@ def query(question: str, template_name: Optional[str] = None, temperature: Optio
             if use_feedback_optimization and query_enhancer:
                 try:
                     adaptive_threshold = query_enhancer.get_adaptive_similarity_threshold(enhanced_query)
-                    search_kwargs["score_threshold"] = adaptive_threshold
+                    # search_kwargs["score_threshold"] = adaptive_threshold
                     optimization_metadata["adaptive_threshold"] = adaptive_threshold
                     logger.info("Using adaptive similarity threshold: %s", adaptive_threshold)
                 except Exception as threshold_error:
                     logger.warning("Failed to get adaptive threshold: %s", str(threshold_error))
 
             retriever = db.as_retriever(
-                search_type="similarity_score_threshold" if "score_threshold" in search_kwargs else "similarity",
+                search_type="similarity",
                 search_kwargs=search_kwargs
             )
             logger.info("Created retriever with k=%s", RETRIEVAL_K)
@@ -163,7 +169,8 @@ def query(question: str, template_name: Optional[str] = None, temperature: Optio
         # Get relevant documents using the enhanced query
         document_ids = []
         try:
-            docs = retriever.get_relevant_documents(enhanced_query)
+            # docs = retriever.get_relevant_documents(enhanced_query)
+            docs = retriever.invoke(enhanced_query)
 
             # Apply document re-ranking if feedback optimization is enabled
             if use_feedback_optimization and query_enhancer and docs:
@@ -225,14 +232,33 @@ def query(question: str, template_name: Optional[str] = None, temperature: Optio
         prompt = ChatPromptTemplate.from_template(prompt_text)
         logger.info("Created prompt template")
 
-        # Set up the chain using LangChain Expression Language (LCEL)
+        # Get context parameters from context manager to pass to the chain
+        context_params = context_manager.get_context_params(
+            query=enhanced_query,
+            conversation=conversation,
+            retrieved_docs=docs,
+            classification=context_info.get("classification")
+        )
+        logger.info("Prepared context parameters: context=%d chars, previous_content=%d chars, conversation_summary=%d chars",
+                   len(context_params.get("context", "")),
+                   len(context_params.get("previous_content", "")),
+                   len(context_params.get("conversation_summary", "")))
+
+        # Set up the chain with ALL context parameters, not just the question
+        # This ensures conversation history and retrieved documents are included
         chain = (
-            {"question": RunnablePassthrough()}
+            {
+                "question": RunnablePassthrough(),
+                "context": lambda _: context_params.get("context", ""),
+                "previous_content": lambda _: context_params.get("previous_content", ""),
+                "conversation_history": lambda _: context_params.get("conversation_history", ""),
+                "conversation_summary": lambda _: context_params.get("conversation_summary", "")
+            }
             | prompt
             | llm
             | StrOutputParser()
         )
-        logger.info("Created retrieval chain")
+        logger.info("Created retrieval chain with full context parameters")
 
         # Execute the chain using the enhanced query
         logger.info("Executing chain...")

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Text Embedding Tool for RAG</title>
     <style>
@@ -10,21 +11,27 @@
             padding: 20px;
             line-height: 1.6;
         }
+
         h1 {
             color: #333;
             border-bottom: 1px solid #ddd;
             padding-bottom: 10px;
         }
-        .form-container, .query-container, .admin-container {
+
+        .form-container,
+        .query-container,
+        .admin-container {
             background-color: #f9f9f9;
             border: 1px solid #ddd;
             padding: 20px;
             border-radius: 5px;
             margin-bottom: 20px;
         }
+
         .admin-container {
             background-color: #fff0f0;
         }
+
         .dropzone {
             border: 2px dashed #ccc;
             border-radius: 5px;
@@ -35,10 +42,12 @@
             background-color: #f8f9fa;
             cursor: pointer;
         }
+
         .dropzone.dragover {
             border-color: #4CAF50;
             background-color: #e8f5e9;
         }
+
         .file-list {
             margin-top: 15px;
             max-height: 150px;
@@ -48,6 +57,7 @@
             border-radius: 4px;
             background-color: white;
         }
+
         .file-item {
             display: flex;
             justify-content: space-between;
@@ -55,31 +65,38 @@
             padding: 5px 0;
             border-bottom: 1px solid #eee;
         }
+
         .file-item:last-child {
             border-bottom: none;
         }
+
         .remove-file {
             color: #f44336;
             cursor: pointer;
             font-weight: bold;
         }
+
         .query-options {
             display: flex;
             gap: 20px;
             margin-bottom: 15px;
         }
+
         .query-option {
             flex: 1;
             display: flex;
             flex-direction: column;
         }
+
         .query-input {
             display: flex;
             flex-direction: column;
         }
+
         .query-input textarea {
             min-height: 5rem;
         }
+
         #queryInput {
             min-height: 5rem;
             padding: 8px;
@@ -88,29 +105,79 @@
             border-radius: 3px;
             resize: vertical;
         }
+
         #queryInput:focus {
             border-color: #4CAF50;
             outline: none;
         }
-        select, input[type="number"] {
+
+        select,
+        input[type="number"] {
             padding: 8px;
             margin-bottom: 15px;
             border: 1px solid #ddd;
             border-radius: 3px;
         }
 
-        select:focus, input[type="number"]:focus {
+        select:focus,
+        input[type="number"]:focus {
             border-color: #4CAF50;
             outline: none;
         }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .slider-label {
+            font-size: 0.85em;
+            color: #666;
+            white-space: nowrap;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            height: 6px;
+            background: linear-gradient(to right, #2196F3, #4CAF50);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #4CAF50;
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: #4CAF50;
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
         label {
             display: block;
             margin-bottom: 8px;
             font-weight: bold;
         }
+
         input[type="file"] {
             margin-bottom: 15px;
         }
+
         input[type="text"] {
             width: 100%;
             padding: 8px;
@@ -118,6 +185,7 @@
             border: 1px solid #ddd;
             border-radius: 3px;
         }
+
         button {
             background-color: #4CAF50;
             color: white;
@@ -127,21 +195,27 @@
             cursor: pointer;
             margin-right: 10px;
         }
+
         button:hover {
             background-color: #45a049;
         }
+
         .danger-button {
             background-color: #f44336;
         }
+
         .danger-button:hover {
             background-color: #d32f2f;
         }
+
         .warning-button {
             background-color: #ff9800;
         }
+
         .warning-button:hover {
             background-color: #e68a00;
         }
+
         .response {
             margin-top: 20px;
             padding: 15px;
@@ -149,10 +223,129 @@
             border-left: 4px solid #4CAF50;
             display: none;
         }
+
+        /* Markdown rendering styles */
+        .response h1,
+        .response h2,
+        .response h3,
+        .response h4,
+        .response h5,
+        .response h6 {
+            margin-top: 1em;
+            margin-bottom: 0.5em;
+            color: #333;
+        }
+
+        .response h1 {
+            font-size: 1.8em;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 0.3em;
+        }
+
+        .response h2 {
+            font-size: 1.5em;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 0.3em;
+        }
+
+        .response h3 {
+            font-size: 1.3em;
+        }
+
+        .response h4 {
+            font-size: 1.1em;
+        }
+
+        .response p {
+            margin: 0.8em 0;
+        }
+
+        .response ul,
+        .response ol {
+            margin: 0.8em 0;
+            padding-left: 2em;
+        }
+
+        .response li {
+            margin: 0.3em 0;
+        }
+
+        .response code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .response pre {
+            background-color: #f4f4f4;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 12px;
+            overflow-x: auto;
+            margin: 1em 0;
+        }
+
+        .response pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        .response blockquote {
+            border-left: 4px solid #ddd;
+            margin: 1em 0;
+            padding-left: 1em;
+            color: #666;
+            font-style: italic;
+        }
+
+        .response table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 1em 0;
+        }
+
+        .response table th,
+        .response table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .response table th {
+            background-color: #f4f4f4;
+            font-weight: bold;
+        }
+
+        .response a {
+            color: #4CAF50;
+            text-decoration: none;
+        }
+
+        .response a:hover {
+            text-decoration: underline;
+        }
+
+        .response hr {
+            border: none;
+            border-top: 2px solid #ddd;
+            margin: 1.5em 0;
+        }
+
+        .response strong {
+            font-weight: bold;
+        }
+
+        .response em {
+            font-style: italic;
+        }
+
         .button-group {
             display: flex;
             gap: 10px;
         }
+
         .conversation-indicator {
             display: inline-block;
             margin-left: 10px;
@@ -162,6 +355,7 @@
             font-size: 0.8em;
             color: #4CAF50;
         }
+
         .follow-up-indicator {
             display: inline-block;
             margin-left: 10px;
@@ -171,6 +365,7 @@
             font-size: 0.8em;
             color: #2196F3;
         }
+
         .conversation-history {
             margin-top: 20px;
             padding: 15px;
@@ -180,23 +375,28 @@
             overflow-y: auto;
             display: none;
         }
+
         .conversation-entry {
             margin-bottom: 15px;
             padding-bottom: 15px;
             border-bottom: 1px solid #ddd;
         }
+
         .conversation-entry:last-child {
             margin-bottom: 0;
             padding-bottom: 0;
             border-bottom: none;
         }
+
         .user-query {
             font-weight: bold;
             margin-bottom: 5px;
         }
+
         .system-response {
             margin-left: 15px;
         }
+
         .toggle-history {
             background: none;
             border: none;
@@ -207,9 +407,11 @@
             margin-top: 10px;
             text-decoration: underline;
         }
+
         .toggle-history:hover {
             color: #45a049;
         }
+
         .feedback-container {
             margin-top: 15px;
             padding: 15px;
@@ -218,49 +420,59 @@
             border-radius: 5px;
             display: none;
         }
+
         .feedback-rating {
             display: flex;
             align-items: center;
             gap: 10px;
             margin-bottom: 15px;
         }
+
         .star-rating {
             display: flex;
             gap: 5px;
         }
+
         .star {
             font-size: 24px;
             color: #ddd;
             cursor: pointer;
             transition: color 0.2s;
         }
+
         .star:hover,
         .star.active {
             color: #ffc107;
         }
+
         .feedback-details {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
             gap: 15px;
             margin-bottom: 15px;
         }
+
         .feedback-option {
             display: flex;
             flex-direction: column;
         }
+
         .feedback-option label {
             font-size: 0.9em;
             margin-bottom: 5px;
         }
+
         .feedback-option select {
             padding: 5px;
             border: 1px solid #ddd;
             border-radius: 3px;
             font-size: 0.9em;
         }
+
         .feedback-comments {
             margin-bottom: 15px;
         }
+
         .feedback-comments textarea {
             width: 100%;
             min-height: 60px;
@@ -270,10 +482,12 @@
             resize: vertical;
             font-family: inherit;
         }
+
         .feedback-buttons {
             display: flex;
             gap: 10px;
         }
+
         .feedback-submit {
             background-color: #28a745;
             color: white;
@@ -283,9 +497,11 @@
             cursor: pointer;
             font-size: 0.9em;
         }
+
         .feedback-submit:hover {
             background-color: #218838;
         }
+
         .feedback-cancel {
             background-color: #6c757d;
             color: white;
@@ -295,9 +511,11 @@
             cursor: pointer;
             font-size: 0.9em;
         }
+
         .feedback-cancel:hover {
             background-color: #5a6268;
         }
+
         .feedback-toggle {
             background: none;
             border: none;
@@ -308,9 +526,11 @@
             text-decoration: underline;
             margin-top: 10px;
         }
+
         .feedback-toggle:hover {
             color: #0056b3;
         }
+
         .feedback-success {
             color: #28a745;
             font-size: 0.9em;
@@ -318,19 +538,29 @@
         }
     </style>
 </head>
+
 <body>
     <h1>Ragtime Gal</h1>
     <h4 style="font-style: italic; color: #888">Document-Based Question Answering with Local Language Models</h4>
 
     <div class="query-container">
         <h2>Query Embedded Documents
-            <span id="conversationActive" class="conversation-indicator" style="display: none;">Conversation Active</span>
+            <span id="conversationActive" class="conversation-indicator" style="display: none;">Conversation
+                Active</span>
             <span id="followUpIndicator" class="follow-up-indicator" style="display: none;">Follow-up Question</span>
         </h2>
         <form id="queryForm">
+            <div>
+                <label for="existingCollections">Which document collection to you wish to query:</label>
+                <select id="queryCollection" name="existing_collection">
+                    <option value="">Loading collections...</option>
+                </select>
+            </div>
+
             <div class="query-input">
                 <label for="queryInput">Enter your question or instruction:</label>
-                <textarea id="queryInput" name="query" placeholder="What would you like to know about the document?" required></textarea>
+                <textarea id="queryInput" name="query" placeholder="What would you like to know about the document?"
+                    required></textarea>
             </div>
 
             <div class="query-options">
@@ -339,13 +569,18 @@
                     <select id="templateSelect" name="template">
                         <option value="standard">Standard</option>
                         <option value="creative">Creative</option>
-                        <option value="sixthwood" selected>Sixth Wood</option>
+                        <option value="ilyr" selected>World of I'lyr</option>
                     </select>
                 </div>
 
                 <div class="query-option">
-                    <label for="temperatureInput">Temperature (0-1):</label>
-                    <input type="number" id="temperatureInput" name="temperature" min="0" max="1" step="0.1" value="0.7">
+                    <label for="temperatureInput">Temperature:</label>
+                    <div class="slider-container">
+                        <span class="slider-label">Precise</span>
+                        <input type="range" id="temperatureInput" name="temperature" min="0" max="10" step="0.1"
+                            value="7">
+                        <span class="slider-label">Creative</span>
+                    </div>
                 </div>
             </div>
 
@@ -436,11 +671,13 @@
                     </div>
                     <div style="flex: 1;">
                         <label for="newCollectionName">Or create new collection:</label>
-                        <input type="text" id="newCollectionName" name="new_collection" placeholder="Enter new collection name">
+                        <input type="text" id="newCollectionName" name="new_collection"
+                            placeholder="Enter new collection name">
                     </div>
                 </div>
                 <p style="font-size: 0.9em; color: #666; margin-top: 10px;">
-                    Choose an existing collection or enter a new name. If both are provided, the new collection name will be used.
+                    Choose an existing collection or enter a new name. If both are provided, the new collection name
+                    will be used.
                 </p>
             </div>
             <div id="dropzone" class="dropzone">
@@ -478,6 +715,7 @@
         const toggleHistoryButton = document.getElementById('toggleHistory');
         const conversationHistoryDiv = document.getElementById('conversationHistory');
         const existingCollectionsSelect = document.getElementById('existingCollections');
+        const queryCollectionsSelect = document.getElementById('queryCollection');
         const newCollectionNameInput = document.getElementById('newCollectionName');
 
         // Track selected files
@@ -571,19 +809,23 @@
                 } else {
                     console.error('Error loading collections:', result.error);
                     existingCollectionsSelect.innerHTML = '<option value="">Error loading collections</option>';
+                    queryCollectionsSelect.innerHTML = '<option value="">Error loading collections</option>';
                 }
             } catch (error) {
                 console.error('Error loading collections:', error);
                 existingCollectionsSelect.innerHTML = '<option value="">Error loading collections</option>';
+                queryCollectionsSelect.innerHTML = '<option value="">Error loading collections</option>';
             }
         }
 
         // Update the collections select dropdown
         function updateCollectionsSelect() {
             existingCollectionsSelect.innerHTML = '<option value="">Select existing collection...</option>';
+            queryCollectionsSelect.innerHTML = '<option value="">Select existing collection...</option>';
 
             if (availableCollections.length === 0) {
                 existingCollectionsSelect.innerHTML = '<option value="">No collections found</option>';
+                queryCollectionsSelect.innerHTML = '<option value="">No collections found</option>';
                 return;
             }
 
@@ -592,6 +834,7 @@
                 option.value = collection.name;
                 option.textContent = `${collection.name} (${collection.document_count} docs)`;
                 existingCollectionsSelect.appendChild(option);
+                queryCollectionsSelect.appendChild(option);
             });
         }
 
@@ -643,7 +886,7 @@
         }
 
         // Handle form submission for multiple files
-        uploadForm.addEventListener('submit', async function(e) {
+        uploadForm.addEventListener('submit', async function (e) {
             e.preventDefault();
 
             if (selectedFiles.length === 0) {
@@ -668,7 +911,7 @@
                 formData.append('collection_name', collectionName);
 
                 try {
-                    uploadResponse.textContent = `Processing file ${i+1} of ${selectedFiles.length}: ${file.name}`;
+                    uploadResponse.textContent = `Processing file ${i + 1} of ${selectedFiles.length}: ${file.name}`;
 
                     const response = await fetch('/embed', {
                         method: 'POST',
@@ -738,7 +981,7 @@
         }
 
         // Toggle conversation history display
-        toggleHistoryButton.addEventListener('click', function() {
+        toggleHistoryButton.addEventListener('click', function () {
             if (conversationHistoryDiv.style.display === 'none' || conversationHistoryDiv.style.display === '') {
                 conversationHistoryDiv.style.display = 'block';
                 toggleHistoryButton.textContent = 'Hide Conversation History';
@@ -771,12 +1014,13 @@
         }
 
         // Query form handling
-        document.getElementById('queryForm').addEventListener('submit', async function(e) {
+        document.getElementById('queryForm').addEventListener('submit', async function (e) {
             e.preventDefault();
             const queryInput = document.getElementById('queryInput');
             const templateSelect = document.getElementById('templateSelect');
             const temperatureInput = document.getElementById('temperatureInput');
             const responseDiv = document.getElementById('queryResponse');
+            const collection = document.getElementById('queryCollection');
 
             // Check if this might be a follow-up question
             const isFollowUp = checkForFollowUp(queryInput.value);
@@ -791,7 +1035,8 @@
 
             // Prepare request data
             const requestData = {
-                query: queryInput.value
+                query: queryInput.value,
+                collection: collection.value
             };
 
             // Add template if selected
@@ -816,7 +1061,8 @@
                 const result = await response.json();
 
                 if (response.ok) {
-                    responseDiv.textContent = result.message;
+                    // Use innerHTML to render the HTML-formatted markdown from server
+                    responseDiv.innerHTML = result.message;
                     responseDiv.style.borderLeft = '4px solid #4CAF50';
 
                     // Show feedback option for this response
@@ -850,7 +1096,7 @@
         });
 
         // Clear conversation history handling
-        clearHistoryButton.addEventListener('click', async function() {
+        clearHistoryButton.addEventListener('click', async function () {
             if (confirm('Are you sure you want to clear the conversation history? This will reset the context for future queries.')) {
                 const responseDiv = document.getElementById('queryResponse');
 
@@ -903,7 +1149,7 @@
         }
 
         // Purge database handling
-        document.getElementById('purgeButton').addEventListener('click', async function() {
+        document.getElementById('purgeButton').addEventListener('click', async function () {
             if (confirm('Are you sure you want to purge all documents from the database? This action cannot be undone.')) {
                 const responseDiv = document.getElementById('purgeResponse');
 
@@ -944,21 +1190,21 @@
         let currentResponse = '';
 
         // Star rating functionality
-        starRating.addEventListener('click', function(e) {
+        starRating.addEventListener('click', function (e) {
             if (e.target.classList.contains('star')) {
                 const rating = parseInt(e.target.dataset.rating);
                 setStarRating(rating);
             }
         });
 
-        starRating.addEventListener('mouseover', function(e) {
+        starRating.addEventListener('mouseover', function (e) {
             if (e.target.classList.contains('star')) {
                 const rating = parseInt(e.target.dataset.rating);
                 highlightStars(rating);
             }
         });
 
-        starRating.addEventListener('mouseout', function() {
+        starRating.addEventListener('mouseout', function () {
             highlightStars(currentRating);
         });
 
@@ -1004,7 +1250,7 @@
         }
 
         // Toggle feedback container
-        feedbackToggle.addEventListener('click', function() {
+        feedbackToggle.addEventListener('click', function () {
             if (feedbackContainer.style.display === 'none' || feedbackContainer.style.display === '') {
                 feedbackContainer.style.display = 'block';
                 feedbackToggle.textContent = 'Hide feedback form';
@@ -1014,7 +1260,7 @@
         });
 
         // Cancel feedback
-        cancelFeedbackButton.addEventListener('click', function() {
+        cancelFeedbackButton.addEventListener('click', function () {
             hideFeedbackForm();
         });
 
@@ -1037,7 +1283,7 @@
         }
 
         // Submit feedback
-        submitFeedbackButton.addEventListener('click', async function() {
+        submitFeedbackButton.addEventListener('click', async function () {
             if (currentRating === 0) return;
 
             const feedbackData = {
@@ -1094,4 +1340,5 @@
         loadCollections();
     </script>
 </body>
+
 </html>
