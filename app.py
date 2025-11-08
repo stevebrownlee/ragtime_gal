@@ -530,63 +530,71 @@ def generate_training_data():
             embedding_model=os.getenv('EMBEDDING_MODEL', 'mistral')
         )
 
-        logger.info(f"Generating training data: min_pos={min_positive_samples}, "
-                   f"min_neg={min_negative_samples}, days={days_back}")
+        logger.info(f"Generating training data: days={days_back}, "
+                   f"include_hard_negatives={include_hard_negatives}")
 
-        # Get feedback data
-        feedback_data = generator.get_feedback_data(
+        # Map export format
+        format_map = {
+            'csv': 'sentence_transformers',
+            'json': 'json'
+        }
+        output_format = format_map.get(export_format, 'sentence_transformers')
+
+        training_dir = os.getenv('TRAINING_DATA_PATH', './training_data')
+
+        # Generate training data (this returns a complete result dict)
+        result = generator.generate_training_data(
             days_back=days_back,
-            min_samples=min_positive_samples + min_negative_samples
+            include_hard_negatives=include_hard_negatives,
+            output_format=output_format,
+            output_path=training_dir
         )
 
-        if not feedback_data or len(feedback_data) < (min_positive_samples + min_negative_samples):
+        # Check if generation was successful
+        if not result.get('success'):
             return jsonify({
                 'success': False,
-                'error': f'Insufficient feedback data. Found {len(feedback_data)} entries, '
-                        f'need at least {min_positive_samples + min_negative_samples}',
-                'available_feedback': len(feedback_data)
-            }), 400
-
-        # Generate training pairs
-        training_pairs = generator.generate_training_data_from_feedback(
-            feedback_data,
-            min_positive_samples=min_positive_samples,
-            min_negative_samples=min_negative_samples,
-            include_hard_negatives=include_hard_negatives
-        )
-
-        if not training_pairs:
-            return jsonify({
-                'success': False,
-                'error': 'Failed to generate training pairs from feedback data'
+                'error': result.get('error', 'Unknown error during training data generation')
             }), 500
 
-        # Export training data
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        training_dir = os.getenv('TRAINING_DATA_PATH', './training_data')
-        os.makedirs(training_dir, exist_ok=True)
+        # Check if we have enough pairs (validate after generation)
+        stats = result.get('data_statistics', {})
+        positive_pairs = stats.get('positive_pairs', 0)
+        negative_pairs = stats.get('negative_pairs', 0)
 
-        output_path = os.path.join(training_dir, f"training_{timestamp}.{export_format}")
-        generator.export_training_data(training_pairs, output_path, format_type=export_format)
+        if positive_pairs < min_positive_samples or negative_pairs < min_negative_samples:
+            return jsonify({
+                'success': False,
+                'error': f'Insufficient training pairs generated. '
+                        f'Got {positive_pairs} positive (need {min_positive_samples}), '
+                        f'{negative_pairs} negative (need {min_negative_samples})',
+                'statistics': stats
+            }), 400
 
-        # Calculate statistics
-        positive_pairs = sum(1 for p in training_pairs if p.label == 1.0)
-        negative_pairs = sum(1 for p in training_pairs if p.label == 0.0)
-        hard_negative_pairs = sum(1 for p in training_pairs if p.pair_type == "hard_negative")
+        # Get export details from result
+        export_info = result.get('export', {})
+        output_files = export_info.get('files', [])
+        output_path = output_files[0] if output_files else 'unknown'
 
-        logger.info(f"Training data generated: {len(training_pairs)} pairs "
+        # Get statistics from result
+        total_pairs = stats.get('total_training_pairs', 0)
+        hard_negative_pairs = stats.get('hard_negatives', 0)
+        source_feedback_count = stats.get('total_feedback_entries', 0)
+
+        logger.info(f"Training data generated: {total_pairs} pairs "
                    f"({positive_pairs} positive, {negative_pairs} negative, "
                    f"{hard_negative_pairs} hard negatives)")
+        logger.info(f"Training data exported to: {output_path}")
 
         return jsonify({
             'success': True,
             'training_data_path': output_path,
             'statistics': {
-                'total_pairs': len(training_pairs),
+                'total_pairs': total_pairs,
                 'positive_pairs': positive_pairs,
                 'negative_pairs': negative_pairs,
                 'hard_negative_pairs': hard_negative_pairs,
-                'source_feedback_count': len(feedback_data)
+                'source_feedback_count': source_feedback_count
             }
         }), 200
 
@@ -662,8 +670,7 @@ def start_fine_tuning():
                 training_jobs[job_id]['progress'] = 20
                 train_examples, val_examples = finetuner.load_training_data(
                     training_data_path,
-                    format_type='csv' if training_data_path.endswith('.csv') else 'json',
-                    validation_split=config.validation_split
+                    format_type='csv' if training_data_path.endswith('.csv') else 'json'
                 )
 
                 if not train_examples:
