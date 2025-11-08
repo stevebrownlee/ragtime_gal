@@ -97,7 +97,16 @@ class TrainingDataGenerator:
 
                         # Filter by date
                         if days_back > 0:
-                            entry_date = datetime.fromisoformat(feedback_data.get('timestamp', ''))
+                            timestamp = feedback_data.get('timestamp')
+                            # Handle both numeric timestamps (Unix time) and ISO strings
+                            if isinstance(timestamp, (int, float)):
+                                entry_date = datetime.fromtimestamp(timestamp)
+                            elif isinstance(timestamp, str):
+                                entry_date = datetime.fromisoformat(timestamp)
+                            else:
+                                logger.warning(f"Invalid timestamp type: {type(timestamp)}")
+                                continue
+
                             cutoff_date = datetime.now() - timedelta(days=days_back)
                             if entry_date < cutoff_date:
                                 continue

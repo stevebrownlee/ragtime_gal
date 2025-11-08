@@ -23,6 +23,11 @@ mcp = "*"
 spacy = "*"
 textstat = "*"
 language-tool-python = "*"
+# Monitoring dependencies
+psutil = "*"
+sentence-transformers = "*"
+torch = "*"
+pandas = "*"
 
 [dev-packages]
 black = "*"
@@ -30,7 +35,7 @@ flake8 = "*"
 pytest = "*"
 
 [requires]
-python_version = "3.13"
+python_version = "3.11.11"
 
 [scripts]
 start = "python3 app.py"

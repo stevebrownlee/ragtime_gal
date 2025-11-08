@@ -163,14 +163,22 @@ Complete System Architecture:
    ollama pull sixthwood  # For LLM inference
    ```
 
-4. **Start the Application**:
+4. **Install Dependencies**:
+   ```bash
+   pipenv install
+   # or
+   pip install -r requirements.txt
+   ```
+
+5. **Start the Application**:
    ```bash
    python app.py
    ```
 
-5. **Access the System**:
+6. **Access the System**:
    - Main Interface: `http://localhost:8084`
    - Monitoring Dashboard: `http://localhost:8084/monitoring`
+   - Health Check: `http://localhost:8084/health`
 
 ### Production Deployment
 
@@ -368,17 +376,41 @@ pytest -n auto
 
 ## Monitoring and Observability
 
-### Real-time Monitoring
+### Real-time Monitoring Dashboard
+
+The integrated monitoring dashboard provides comprehensive system observability:
+
+**Access**: `http://localhost:8084/monitoring`
+
+**Features**:
+- **System Metrics**: Real-time CPU, memory, disk usage, and network connections
+- **Application Performance**: Response times, error rates, and request throughput
+- **Feedback Analytics**: User ratings, trends, and satisfaction indicators
+- **Visual Charts**: 24-hour performance trends and rating distributions
+- **Active Alerts**: Color-coded alerts with severity levels and resolution actions
+
+**Key Metrics Tracked**:
 - System performance metrics (CPU, memory, disk usage)
 - Application metrics (response times, error rates, throughput)
 - Feedback system metrics (ratings, trends, improvement indicators)
 - Model performance tracking (accuracy, relevance, user satisfaction)
 
+**API Endpoints**:
+- `GET /monitoring` - Interactive dashboard interface
+- `GET /monitoring/api/metrics?hours=24` - Retrieve metrics data (JSON)
+- `GET /monitoring/api/alerts` - Get active system alerts (JSON)
+- `GET /monitoring/api/health` - Detailed health status (JSON)
+- `POST /monitoring/api/alerts/<id>/resolve` - Resolve specific alert
+
+**Automatic Monitoring**:
+The system automatically monitors all API routes (query, embed, feedback) and collects metrics every 30 seconds.
+
 ### Alerting
 - Configurable alert thresholds for all metrics
 - Multiple alert levels (info, warning, error, critical)
-- Email and webhook notifications
+- Email and webhook notifications (configurable)
 - Alert resolution tracking and escalation
+- Automatic alerts for: High CPU (>80%), High Memory (>85%), High Error Rate (>5%), Slow Responses (>5s)
 
 ### Analytics
 - User feedback trends and patterns

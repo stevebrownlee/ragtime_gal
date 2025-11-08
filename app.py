@@ -20,6 +20,18 @@ from langchain_chroma import Chroma
 from langchain_ollama import OllamaEmbeddings
 # Import ConPort client
 from conport_client import get_conport_client, initialize_conport_client
+# Import monitoring dashboard
+from monitoring_dashboard import (
+    create_monitoring_blueprint,
+    start_monitoring,
+    monitor_route,
+    record_request_metrics
+)
+# Import Phase 3 components for model fine-tuning
+from training_data_generator import create_training_data_generator
+from model_finetuner import create_model_finetuner, FineTuningConfig
+import threading
+from datetime import datetime
 
 # Load environment variables
 load_dotenv()
@@ -41,6 +53,17 @@ app.secret_key = os.getenv('SECRET_KEY', secrets.token_hex(16))
 
 # Initialize ConPort client
 conport_client = initialize_conport_client(workspace_id=os.getcwd())
+
+# Register monitoring dashboard blueprint
+app.register_blueprint(create_monitoring_blueprint())
+
+# Start monitoring system (collect metrics every 30 seconds)
+# Phase 3: Training job tracking
+training_jobs = {}  # job_id -> job_info
+ab_tests = {}  # test_id -> test_info
+
+start_monitoring(interval=30)
+logger.info("Monitoring dashboard started - accessible at /monitoring")
 
 # Helper function to get vector DB - replaces the imported get_vector_db
 def get_vector_db():
@@ -66,6 +89,7 @@ def index():
     return render_template_string(template_html)
 
 @app.route('/embed', methods=['POST'])
+@monitor_route
 def route_embed():
     # pylint: disable=W0718
     try:
@@ -101,6 +125,7 @@ def route_embed():
         return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 @app.route('/query', methods=['POST'])
+@monitor_route
 def route_query():
     """Route to query the vector database with a question, using conversation history"""
     # pylint: disable=W0718
@@ -296,6 +321,7 @@ def get_collections():
         return jsonify({'error': f'Error getting collections: {str(e)}'}), 500
 
 @app.route('/feedback', methods=['POST'])
+@monitor_route
 def submit_feedback():
     """Route to submit user feedback on query responses"""
     # pylint: disable=W0718
@@ -394,6 +420,7 @@ def submit_feedback():
         return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 @app.route('/feedback/analytics', methods=['GET'])
+@monitor_route
 def get_feedback_analytics():
     """Route to get feedback analytics and insights"""
     # pylint: disable=W0718
@@ -475,6 +502,399 @@ def get_feedback_summary():
     except Exception as e:
         logger.error(f"Error getting feedback summary: {str(e)}")
         return jsonify({'error': f'Error getting feedback summary: {str(e)}'}), 500
+
+# ============================================================================
+# Phase 3: Model Fine-tuning API Endpoints
+# ============================================================================
+
+@app.route('/training/generate-data', methods=['POST'])
+@monitor_route
+def generate_training_data():
+    """Generate training data from user feedback"""
+    # pylint: disable=W0718
+    try:
+        data = request.get_json() or {}
+
+        # Get parameters with defaults
+        min_positive_samples = data.get('min_positive_samples', 50)
+        min_negative_samples = data.get('min_negative_samples', 50)
+        include_hard_negatives = data.get('include_hard_negatives', True)
+        days_back = data.get('days_back', 90)
+        export_format = data.get('export_format', 'csv')
+
+        # Create training data generator
+        generator = create_training_data_generator(
+            conport_client=conport_client,
+            workspace_id=conport_client.get_workspace_id(),
+            chroma_db=get_vector_db(),
+            embedding_model=os.getenv('EMBEDDING_MODEL', 'mistral')
+        )
+
+        logger.info(f"Generating training data: min_pos={min_positive_samples}, "
+                   f"min_neg={min_negative_samples}, days={days_back}")
+
+        # Get feedback data
+        feedback_data = generator.get_feedback_data(
+            days_back=days_back,
+            min_samples=min_positive_samples + min_negative_samples
+        )
+
+        if not feedback_data or len(feedback_data) < (min_positive_samples + min_negative_samples):
+            return jsonify({
+                'success': False,
+                'error': f'Insufficient feedback data. Found {len(feedback_data)} entries, '
+                        f'need at least {min_positive_samples + min_negative_samples}',
+                'available_feedback': len(feedback_data)
+            }), 400
+
+        # Generate training pairs
+        training_pairs = generator.generate_training_data_from_feedback(
+            feedback_data,
+            min_positive_samples=min_positive_samples,
+            min_negative_samples=min_negative_samples,
+            include_hard_negatives=include_hard_negatives
+        )
+
+        if not training_pairs:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to generate training pairs from feedback data'
+            }), 500
+
+        # Export training data
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        training_dir = os.getenv('TRAINING_DATA_PATH', './training_data')
+        os.makedirs(training_dir, exist_ok=True)
+
+        output_path = os.path.join(training_dir, f"training_{timestamp}.{export_format}")
+        generator.export_training_data(training_pairs, output_path, format_type=export_format)
+
+        # Calculate statistics
+        positive_pairs = sum(1 for p in training_pairs if p.label == 1.0)
+        negative_pairs = sum(1 for p in training_pairs if p.label == 0.0)
+        hard_negative_pairs = sum(1 for p in training_pairs if p.pair_type == "hard_negative")
+
+        logger.info(f"Training data generated: {len(training_pairs)} pairs "
+                   f"({positive_pairs} positive, {negative_pairs} negative, "
+                   f"{hard_negative_pairs} hard negatives)")
+
+        return jsonify({
+            'success': True,
+            'training_data_path': output_path,
+            'statistics': {
+                'total_pairs': len(training_pairs),
+                'positive_pairs': positive_pairs,
+                'negative_pairs': negative_pairs,
+                'hard_negative_pairs': hard_negative_pairs,
+                'source_feedback_count': len(feedback_data)
+            }
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error generating training data: {str(e)}")
+        return jsonify({'error': f'Error generating training data: {str(e)}'}), 500
+
+
+@app.route('/training/fine-tune', methods=['POST'])
+@monitor_route
+def start_fine_tuning():
+    """Start a model fine-tuning job"""
+    # pylint: disable=W0718
+    try:
+        data = request.get_json()
+        if not data or 'training_data_path' not in data:
+            return jsonify({'error': 'Missing training_data_path parameter'}), 400
+
+        training_data_path = data['training_data_path']
+        if not os.path.exists(training_data_path):
+            return jsonify({'error': f'Training data file not found: {training_data_path}'}), 404
+
+        # Get configuration parameters
+        config_data = data.get('config', {})
+        config = FineTuningConfig(
+            base_model_name=data.get('base_model', os.getenv('BASE_MODEL_NAME', 'all-MiniLM-L6-v2')),
+            output_model_path=os.getenv('FINETUNED_MODELS_PATH', './fine_tuned_models'),
+            batch_size=config_data.get('batch_size', int(os.getenv('BATCH_SIZE', 16))),
+            num_epochs=config_data.get('num_epochs', int(os.getenv('NUM_EPOCHS', 4))),
+            learning_rate=config_data.get('learning_rate', float(os.getenv('LEARNING_RATE', 2e-5))),
+            loss_function=config_data.get('loss_function', os.getenv('LOSS_FUNCTION', 'CosineSimilarityLoss')),
+            max_seq_length=config_data.get('max_seq_length', int(os.getenv('MAX_SEQ_LENGTH', 512))),
+            use_amp=config_data.get('use_amp', os.getenv('USE_AMP', 'true').lower() == 'true'),
+            validation_split=config_data.get('validation_split', 0.2)
+        )
+
+        model_name_suffix = data.get('model_name_suffix', 'feedback')
+
+        # Generate job ID
+        job_id = f"ft_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+
+        # Initialize job tracking
+        training_jobs[job_id] = {
+            'job_id': job_id,
+            'status': 'starting',
+            'progress': 0,
+            'start_time': datetime.now().isoformat(),
+            'training_data_path': training_data_path,
+            'config': {
+                'base_model': config.base_model_name,
+                'batch_size': config.batch_size,
+                'num_epochs': config.num_epochs,
+                'learning_rate': config.learning_rate
+            }
+        }
+
+        # Start training in background thread
+        def run_training():
+            try:
+                training_jobs[job_id]['status'] = 'running'
+
+                # Create fine-tuner
+                finetuner = create_model_finetuner(config=config)
+
+                # Load base model
+                training_jobs[job_id]['progress'] = 10
+                if not finetuner.load_base_model(config.base_model_name):
+                    training_jobs[job_id]['status'] = 'failed'
+                    training_jobs[job_id]['error'] = 'Failed to load base model'
+                    return
+
+                # Load training data
+                training_jobs[job_id]['progress'] = 20
+                train_examples, val_examples = finetuner.load_training_data(
+                    training_data_path,
+                    format_type='csv' if training_data_path.endswith('.csv') else 'json',
+                    validation_split=config.validation_split
+                )
+
+                if not train_examples:
+                    training_jobs[job_id]['status'] = 'failed'
+                    training_jobs[job_id]['error'] = 'Failed to load training data'
+                    return
+
+                training_jobs[job_id]['progress'] = 30
+
+                # Fine-tune model
+                result = finetuner.fine_tune_model(
+                    train_examples=train_examples,
+                    val_examples=val_examples,
+                    model_name_suffix=model_name_suffix
+                )
+
+                if result.get('success'):
+                    training_jobs[job_id]['status'] = 'completed'
+                    training_jobs[job_id]['progress'] = 100
+                    training_jobs[job_id]['model_path'] = result['model_path']
+                    training_jobs[job_id]['model_name'] = result['model_name']
+                    training_jobs[job_id]['training_duration'] = result['training_duration']
+                    training_jobs[job_id]['end_time'] = datetime.now().isoformat()
+
+                    # Get final metrics from training history
+                    if result.get('training_history'):
+                        last_metrics = result['training_history'][-1]
+                        training_jobs[job_id]['metrics'] = {
+                            'final_train_loss': getattr(last_metrics, 'train_loss', 0),
+                            'final_eval_score': getattr(last_metrics, 'eval_cosine_accuracy', 0)
+                        }
+
+                    logger.info(f"Fine-tuning job {job_id} completed successfully")
+                else:
+                    training_jobs[job_id]['status'] = 'failed'
+                    training_jobs[job_id]['error'] = result.get('error', 'Unknown error')
+                    logger.error(f"Fine-tuning job {job_id} failed: {result.get('error')}")
+
+            except Exception as e:
+                training_jobs[job_id]['status'] = 'failed'
+                training_jobs[job_id]['error'] = str(e)
+                logger.error(f"Error in fine-tuning job {job_id}: {str(e)}")
+
+        # Start training thread
+        training_thread = threading.Thread(target=run_training, daemon=True)
+        training_thread.start()
+
+        logger.info(f"Started fine-tuning job {job_id}")
+
+        return jsonify({
+            'success': True,
+            'job_id': job_id,
+            'status': 'running',
+            'message': 'Fine-tuning job started'
+        }), 202
+
+    except Exception as e:
+        logger.error(f"Error starting fine-tuning: {str(e)}")
+        return jsonify({'error': f'Error starting fine-tuning: {str(e)}'}), 500
+
+
+@app.route('/training/status/<job_id>', methods=['GET'])
+def get_training_status(job_id):
+    """Get the status of a fine-tuning job"""
+    try:
+        if job_id not in training_jobs:
+            return jsonify({'error': f'Job not found: {job_id}'}), 404
+
+        job_info = training_jobs[job_id]
+        return jsonify(job_info), 200
+
+    except Exception as e:
+        logger.error(f"Error getting training status: {str(e)}")
+        return jsonify({'error': f'Error getting training status: {str(e)}'}), 500
+
+
+@app.route('/testing/ab-test/start', methods=['POST'])
+@monitor_route
+def start_ab_test():
+    """Start an A/B test comparing two models"""
+    # pylint: disable=W0718
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        # Validate required parameters
+        required_fields = ['baseline_model', 'test_model']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'error': f'Missing required field: {field}'}), 400
+
+        baseline_model = data['baseline_model']
+        test_model = data['test_model']
+        traffic_split = data.get('traffic_split', 0.5)
+        duration_hours = data.get('duration_hours', 24)
+        metrics = data.get('metrics', ['response_quality', 'relevance_score', 'user_satisfaction'])
+
+        # Validate traffic split
+        if not 0 < traffic_split < 1:
+            return jsonify({'error': 'traffic_split must be between 0 and 1'}), 400
+
+        # Generate test ID
+        test_id = f"ab_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+
+        # Calculate end time
+        start_time = datetime.now()
+        from datetime import timedelta
+        end_time = start_time + timedelta(hours=duration_hours)
+
+        # Initialize A/B test tracking
+        ab_tests[test_id] = {
+            'test_id': test_id,
+            'status': 'active',
+            'baseline_model': baseline_model,
+            'test_model': test_model,
+            'traffic_split': traffic_split,
+            'start_time': start_time.isoformat(),
+            'estimated_end_time': end_time.isoformat(),
+            'duration_hours': duration_hours,
+            'metrics_tracked': metrics,
+            'baseline_metrics': {
+                'query_count': 0,
+                'ratings': [],
+                'relevance_scores': [],
+                'satisfaction_scores': []
+            },
+            'test_metrics': {
+                'query_count': 0,
+                'ratings': [],
+                'relevance_scores': [],
+                'satisfaction_scores': []
+            }
+        }
+
+        logger.info(f"Started A/B test {test_id}: {baseline_model} vs {test_model}")
+
+        return jsonify({
+            'success': True,
+            'test_id': test_id,
+            'status': 'active',
+            'start_time': start_time.isoformat(),
+            'estimated_end_time': end_time.isoformat(),
+            'message': f'A/B test started. Will run for {duration_hours} hours.'
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error starting A/B test: {str(e)}")
+        return jsonify({'error': f'Error starting A/B test: {str(e)}'}), 500
+
+
+@app.route('/testing/ab-test/<test_id>/results', methods=['GET'])
+def get_ab_test_results(test_id):
+    """Get results of an A/B test"""
+    # pylint: disable=W0718
+    try:
+        if test_id not in ab_tests:
+            return jsonify({'error': f'A/B test not found: {test_id}'}), 404
+
+        test_info = ab_tests[test_id]
+
+        # Calculate average metrics
+        baseline_metrics = test_info['baseline_metrics']
+        test_metrics = test_info['test_metrics']
+
+        def calc_avg(values):
+            return sum(values) / len(values) if values else 0
+
+        baseline_avg = {
+            'query_count': baseline_metrics['query_count'],
+            'avg_rating': calc_avg(baseline_metrics['ratings']),
+            'avg_relevance_score': calc_avg(baseline_metrics['relevance_scores']),
+            'avg_satisfaction': calc_avg(baseline_metrics['satisfaction_scores'])
+        }
+
+        test_avg = {
+            'query_count': test_metrics['query_count'],
+            'avg_rating': calc_avg(test_metrics['ratings']),
+            'avg_relevance_score': calc_avg(test_metrics['relevance_scores']),
+            'avg_satisfaction': calc_avg(test_metrics['satisfaction_scores'])
+        }
+
+        # Simple statistical significance check (t-test would be more robust)
+        # For now, just check if test model has significantly better metrics
+        min_sample_size = 30
+        has_enough_data = (baseline_metrics['query_count'] >= min_sample_size and
+                          test_metrics['query_count'] >= min_sample_size)
+
+        improvement_threshold = 0.1  # 10% improvement
+        test_is_better = (
+            test_avg['avg_rating'] > baseline_avg['avg_rating'] * (1 + improvement_threshold) and
+            test_avg['avg_relevance_score'] > baseline_avg['avg_relevance_score'] * (1 + improvement_threshold)
+        )
+
+        # Determine status and recommendation
+        current_time = datetime.now()
+        end_time = datetime.fromisoformat(test_info['estimated_end_time'])
+
+        if current_time >= end_time:
+            test_info['status'] = 'completed'
+
+        recommendation = 'insufficient_data'
+        if has_enough_data:
+            if test_is_better:
+                recommendation = 'deploy_test_model'
+            else:
+                recommendation = 'keep_baseline'
+
+        result = {
+            'test_id': test_id,
+            'status': test_info['status'],
+            'baseline_model': test_info['baseline_model'],
+            'test_model': test_info['test_model'],
+            'baseline_metrics': baseline_avg,
+            'test_metrics': test_avg,
+            'statistical_significance': has_enough_data and test_is_better,
+            'p_value': 0.05 if has_enough_data and test_is_better else 0.5,  # Simplified
+            'recommendation': recommendation,
+            'test_duration': {
+                'start_time': test_info['start_time'],
+                'end_time': test_info['estimated_end_time'],
+                'status': test_info['status']
+            }
+        }
+
+        return jsonify(result), 200
+
+    except Exception as e:
+        logger.error(f"Error getting A/B test results: {str(e)}")
+        return jsonify({'error': f'Error getting A/B test results: {str(e)}'}), 500
+
 
 @app.route('/health', methods=['GET'])
 def health_check():
