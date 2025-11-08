@@ -14,14 +14,13 @@
 
 ## Overview
 
-The Feedback-Driven RAG (Retrieval-Augmented Generation) System is a comprehensive, multi-phase architecture designed to continuously improve document-based question answering through user feedback and machine learning. The system evolves through five distinct phases, each building upon the previous to create a sophisticated, self-improving AI system.
+The Feedback-Driven RAG (Retrieval-Augmented Generation) System is a comprehensive, multi-phase architecture designed to continuously improve document-based question answering through user feedback and machine learning. The system evolves through three distinct phases, each building upon the previous to create a sophisticated, self-improving AI system.
 
 ### System Goals
 - **Intelligent Document Retrieval**: Semantic search across document collections
 - **Conversational Memory**: Context-aware multi-turn conversations
 - **Continuous Learning**: Feedback-driven system improvements
 - **Model Fine-tuning**: Automated embedding model optimization
-- **Production Readiness**: Comprehensive testing and monitoring
 
 ### Key Characteristics
 - **Modular Design**: Each phase can operate independently
@@ -40,16 +39,10 @@ The Feedback-Driven RAG (Retrieval-Augmented Generation) System is a comprehensi
 ├─────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                 │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐                │
-│  │   Phase 5       │  │   Phase 4       │  │   Phase 3       │                │
-│  │ Documentation   │  │ Testing &       │  │ Model Fine-     │                │
-│  │ & Monitoring    │  │ Validation      │  │ tuning System   │                │
+│  │   Phase 3       │  │   Phase 2       │  │   Phase 1       │                │
+│  │ Model Fine-     │  │ Retrieval       │  │ Feedback        │                │
+│  │ tuning System   │  │ Optimization    │  │ Collection      │                │
 │  └─────────────────┘  └─────────────────┘  └─────────────────┘                │
-│                                                                                 │
-│  ┌─────────────────┐  ┌─────────────────┐                                      │
-│  │   Phase 2       │  │   Phase 1       │                                      │
-│  │ Retrieval       │  │ Feedback        │                                      │
-│  │ Optimization    │  │ Collection      │                                      │
-│  └─────────────────┘  └─────────────────┘                                      │
 │                                                                                 │
 ├─────────────────────────────────────────────────────────────────────────────────┤
 │                              Core System                                       │
@@ -202,75 +195,6 @@ Phase 3 Architecture:
 - **Custom Embedding Models**: Specialized models for domain
 - **A/B Testing Framework**: Compares model performance
 
-### Phase 4: Testing and Validation
-
-```
-Phase 4 Architecture:
-┌─────────────────────────────────────────────────────────────────┐
-│                  Testing & Validation                           │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌─────────────────┐    ┌─────────────────┐                    │
-│  │   Integration   │    │   Performance   │                    │
-│  │   Testing       │    │   Testing       │                    │
-│  │                 │    │                 │                    │
-│  └─────────────────┘    └─────────────────┘                    │
-│                                                                 │
-│  ┌─────────────────┐    ┌─────────────────┐                    │
-│  │   Validation    │    │   Regression    │                    │
-│  │   Testing       │    │   Testing       │                    │
-│  │                 │    │                 │                    │
-│  └─────────────────┘    └─────────────────┘                    │
-│                                                                 │
-│                         ┌─────────────────┐                    │
-│                         │   Test          │                    │
-│                         │   Orchestrator  │                    │
-│                         │                 │                    │
-│                         └─────────────────┘                    │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-**Components:**
-- **Integration Testing**: End-to-end workflow validation
-- **Performance Testing**: Load testing and benchmarking
-- **Validation Testing**: Effectiveness measurement
-- **Regression Testing**: Backward compatibility assurance
-
-### Phase 5: Documentation and Monitoring
-
-```
-Phase 5 Architecture:
-┌─────────────────────────────────────────────────────────────────┐
-│                Documentation & Monitoring                       │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌─────────────────┐    ┌─────────────────┐                    │
-│  │   User          │    │   Technical     │                    │
-│  │   Documentation │    │   Documentation │                    │
-│  │                 │    │                 │                    │
-│  └─────────────────┘    └─────────────────┘                    │
-│                                                                 │
-│  ┌─────────────────┐    ┌─────────────────┐                    │
-│  │   Monitoring    │    │   Deployment    │                    │
-│  │   Dashboard     │    │   Guide         │                    │
-│  │                 │    │                 │                    │
-│  └─────────────────┘    └─────────────────┘                    │
-│                                                                 │
-│                         ┌─────────────────┐                    │
-│                         │   Production    │                    │
-│                         │   Support       │                    │
-│                         │                 │                    │
-│                         └─────────────────┘                    │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-**Components:**
-- **User Documentation**: Guides, tutorials, FAQ
-- **Technical Documentation**: Architecture, APIs, development
-- **Monitoring Dashboard**: Real-time system metrics
-- **Deployment Guide**: Production setup and maintenance
 
 ## Data Flow Diagrams
 
@@ -372,13 +296,9 @@ Phase Integration:
 
 Phase 1 (Feedback) ──┐
                      │
-Phase 2 (Retrieval) ─┼──► ConPort Memory ◄──┐
-                     │                       │
-Phase 3 (Fine-tune) ─┘                      │
-                                             │
-Phase 4 (Testing) ──────────────────────────┘
+Phase 2 (Retrieval) ─┼──► ConPort Memory
                      │
-Phase 5 (Monitoring) ┘
+Phase 3 (Fine-tune) ─┘
 ```
 
 ## Database Schemas

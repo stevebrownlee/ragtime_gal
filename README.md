@@ -1,596 +1,271 @@
-# Feedback-Driven RAG System
+# Ragtime Gal - RAG Server with MCP Integration
 
-This project implements a comprehensive, self-improving document-based question answering system that learns from user feedback to continuously enhance its performance. The system evolves through five distinct phases, each building upon the previous to create a sophisticated, production-ready AI system.
+A sophisticated Retrieval-Augmented Generation (RAG) system that combines Flask-based web UI with Model Context Protocol (MCP) server capabilities, featuring advanced feedback collection, query optimization, and automated model fine-tuning.
 
-## System Overview
-
-The Feedback-Driven RAG System is a multi-phase architecture designed to:
-- **Learn from User Feedback**: Continuously improve based on user ratings and comments
-- **Optimize Retrieval**: Enhance document retrieval based on feedback patterns
-- **Fine-tune Models**: Automatically improve embedding models using collected feedback
-- **Ensure Reliability**: Comprehensive testing and validation for production deployment
-- **Provide Observability**: Complete monitoring, documentation, and operational support
-
-## Architecture Overview
-
-```
-Complete System Architecture:
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                    Feedback-Driven RAG System                                  │
-├─────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                 │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐                │
-│  │   Phase 5       │  │   Phase 4       │  │   Phase 3       │                │
-│  │ Documentation   │  │ Testing &       │  │ Model Fine-     │                │
-│  │ & Monitoring    │  │ Validation      │  │ tuning System   │                │
-│  └─────────────────┘  └─────────────────┘  └─────────────────┘                │
-│                                                                                 │
-│  ┌─────────────────┐  ┌─────────────────┐                                      │
-│  │   Phase 2       │  │   Phase 1       │                                      │
-│  │ Retrieval       │  │ Feedback        │                                      │
-│  │ Optimization    │  │ Collection      │                                      │
-│  └─────────────────┘  └─────────────────┘                                      │
-│                                                                                 │
-├─────────────────────────────────────────────────────────────────────────────────┤
-│                              Core System                                       │
-│                                                                                 │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐                │
-│  │   Web Interface │  │   Flask API     │  │   Conversation  │                │
-│  │   (HTML/JS)     │  │   Server        │  │   Management    │                │
-│  └─────────────────┘  └─────────────────┘  └─────────────────┘                │
-│                                                                                 │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐                │
-│  │   Vector DB     │  │   LLM Engine    │  │   ConPort       │                │
-│  │   (ChromaDB)    │  │   (Ollama)      │  │   Memory        │                │
-│  └─────────────────┘  └─────────────────┘  └─────────────────┘                │
-│                                                                                 │
-└─────────────────────────────────────────────────────────────────────────────────┘
-```
-
-## Key Features
+## High-Level Features
 
 ### Core RAG Capabilities
-- **Vector-based conversation memory**: Uses embeddings to find semantically relevant previous interactions
-- **Dynamic context management**: Intelligently selects and formats context based on query type
-- **Conversation summarization**: Compresses older conversation turns to manage token usage
-- **Sophisticated query classification**: Determines if a query is a follow-up using both regex and semantic similarity
+- **Document Processing & Embedding**: Upload and process PDF and Markdown files into a Chroma vector database using Ollama embeddings
+- **Intelligent Query System**: Context-aware question answering with conversation history management
+- **Multi-Collection Support**: Organize documents into separate collections for better organization
+- **Session-Based Conversations**: Maintain conversation context across queries within a session
 
-### Feedback-Driven Improvements
-- **User Feedback Collection**: Star ratings, detailed feedback, and usage analytics
-- **Pattern Recognition**: Identifies successful query characteristics and common issues
-- **Query Enhancement**: Suggests improvements based on feedback patterns
-- **Model Fine-tuning**: Automatically improves embedding models using feedback data
+### Advanced Query Optimization
+- **Feedback-Driven Enhancement**: Automatically improve queries based on historical user feedback patterns
+- **Adaptive Similarity Thresholds**: Dynamic adjustment of retrieval thresholds based on query characteristics
+- **Document Re-ranking**: Reorder retrieved documents based on historical performance data
+- **Multiple Enhancement Modes**: Auto, expand, rephrase, or no enhancement options
 
-### Production Features
-- **Comprehensive Testing**: Integration, performance, validation, and regression testing
-- **Real-time Monitoring**: System metrics, performance tracking, and alerting
-- **Production Deployment**: Docker containerization, security, and scalability
-- **Complete Documentation**: User guides, technical docs, and API references
+### Model Fine-Tuning System
+- **Training Data Generation**: Automatically generate training pairs from user feedback
+- **Hard Negative Mining**: Identify challenging negative examples for better model discrimination
+- **Automated Fine-Tuning Pipeline**: Fine-tune embedding models using sentence-transformers
+- **A/B Testing Framework**: Compare model performance with statistical significance testing
 
-## System Phases
+### MCP Integration (Book Writing Assistant)
+- **Vector-Based Content Search**: Semantic search across book content with metadata filtering
+- **Chapter Management**: Tools for analyzing, organizing, and navigating book chapters
+- **Character Analysis**: Track and analyze character mentions using semantic search
+- **Writing Analytics**: Comprehensive statistics, readability metrics, and pattern analysis
+- **Content Management**: CRUD operations for chapters and books with safety checks
 
-### Phase 1: Feedback Collection System
-**Purpose**: Collect and analyze user feedback to identify improvement opportunities.
+### User Feedback & Analytics
+- **5-Star Rating System**: Collect detailed user satisfaction ratings
+- **Multi-Dimensional Feedback**: Track relevance, completeness, and response length
+- **Pattern Analysis**: Identify successful query patterns and problematic areas
+- **Real-Time Analytics**: Access feedback insights and recommendations through API endpoints
 
-**Key Components**:
-- User feedback interface with star ratings and detailed feedback
-- **ConPort integration for structured feedback storage** ✅ **IMPLEMENTED**
-- Feedback analysis and pattern recognition
-- Usage analytics and trend identification
+### Monitoring & Performance
+- **Real-Time Monitoring Dashboard**: Track system performance metrics at `/monitoring`
+- **Query Caching**: TTL-based caching for improved response times
+- **Performance Metrics**: Monitor response times, throughput, and resource usage
+- **Error Tracking**: Comprehensive error logging and statistics
 
-**Documentation**: [`PHASE1_README.md`](PHASE1_README.md) | **ConPort Integration**: [`CONPORT_INTEGRATION.md`](CONPORT_INTEGRATION.md)
+## API Endpoints
 
-### Phase 2: Retrieval Optimization
-**Purpose**: Optimize document retrieval based on feedback patterns.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| **Document Management** |
+| `GET` | `/` | Main web interface for document upload and querying |
+| `POST` | `/embed` | Upload and embed PDF/Markdown files into vector database |
+| `POST` | `/purge` | Delete all documents from all collections |
+| `GET` | `/collections` | List all available collections with document counts |
+| **Query & Conversation** |
+| `POST` | `/query` | Query the vector database with conversation context |
+| `POST` | `/clear-history` | Clear the conversation history for current session |
+| `GET` | `/conversation-status` | Get current conversation status and history length |
+| **Feedback System** |
+| `POST` | `/feedback` | Submit user feedback on query responses (1-5 stars) |
+| `GET` | `/feedback/analytics` | Get detailed feedback analytics and patterns |
+| `GET` | `/feedback/summary` | Get quick feedback summary for specified time period |
+| **Model Training** |
+| `POST` | `/training/generate-data` | Generate training data from user feedback |
+| `POST` | `/training/fine-tune` | Start a model fine-tuning job |
+| `GET` | `/training/status/<job_id>` | Get the status and progress of a training job |
+| **A/B Testing** |
+| `POST` | `/testing/ab-test/start` | Start an A/B test comparing two models |
+| `GET` | `/testing/ab-test/<test_id>/results` | Get results and recommendations for an A/B test |
+| **System Health** |
+| `GET` | `/health` | Health check endpoint with ConPort status |
+| `GET` | `/monitoring` | Access the monitoring dashboard |
 
-**Key Components**:
-- Feedback pattern analysis and insight generation
-- Query enhancement based on successful patterns
-- Retrieval performance optimization
-- A/B testing for optimization strategies
+## Training Mechanism Overview
 
-**Documentation**: [`PHASE2_README.md`](PHASE2_README.md)
+The system implements a sophisticated feedback-driven training pipeline:
 
-### Phase 3: Model Fine-tuning System
-**Purpose**: Fine-tune embedding models using collected feedback data.
+### 1. Feedback Collection
+- Users rate query responses on a 5-star scale
+- Additional dimensions tracked: relevance, completeness, response length
+- All feedback stored in ConPort with complete query/response/document context
+- Session tracking links feedback to conversation flow
 
-**Key Components**:
-- Training data generation from user feedback
-- Sentence transformer model fine-tuning
-- A/B testing framework for model comparison
-- Enhanced embedding integration
+### 2. Training Data Generation
 
-**Documentation**: [`PHASE3_README.md`](PHASE3_README.md)
+The `TrainingDataGenerator` class processes feedback into training pairs:
 
-### Phase 4: Testing and Validation
-**Purpose**: Comprehensive testing to ensure system reliability and effectiveness.
+**Positive Pairs (Rating ≥ 4)**
+- Query paired with relevant documents from the response
+- Labeled with score of 1.0
+- Represents successful retrievals
 
-**Key Components**:
-- Integration testing for end-to-end workflows
-- Performance testing under load
-- Validation testing for improvement effectiveness
-- Regression testing for backward compatibility
+**Negative Pairs (Rating ≤ 2)**
+- Query paired with documents that didn't help
+- Labeled with score of 0.0
+- Helps model learn what *not* to retrieve
 
-**Documentation**: [`PHASE4_README.md`](PHASE4_README.md)
+**Hard Negative Mining**
+- Identifies documents that are semantically similar but contextually wrong
+- Uses similarity threshold (default 0.7) to find challenging examples
+- Improves model's discrimination capabilities
 
-### Phase 5: Documentation and Monitoring
-**Purpose**: Production-ready documentation, monitoring, and deployment infrastructure.
+**Export Formats**
+- CSV format for sentence-transformers (query, document, label)
+- JSON format for custom training pipelines
+- Configurable output paths and naming
 
-**Key Components**:
-- Comprehensive user and technical documentation
-- Real-time monitoring dashboard with alerting
-- Production deployment guides and automation
-- Backup, recovery, and maintenance procedures
+### 3. Model Fine-Tuning
 
-**Documentation**: [`PHASE5_README.md`](PHASE5_README.md)
+The `ModelFinetuner` class handles the actual training:
 
-## Core Components
+**Process Flow**
+1. Load base sentence-transformer model (default: `all-MiniLM-L6-v2`)
+2. Parse training data into `InputExample` objects
+3. Split into training/validation sets (default 80/20)
+4. Configure training parameters:
+   - Batch size (default: 16)
+   - Number of epochs (default: 4)
+   - Learning rate (default: 2e-5)
+   - Loss function: CosineSimilarityLoss
+5. Train with automatic mixed precision (AMP) for efficiency
+6. Save fine-tuned model with timestamp and suffix
 
-- **TemplateManager**: Manages prompt templates with dynamic context sections
-- **ContextManager**: Handles context selection and formatting for different query types
-- **QueryClassifier**: Classifies queries to determine appropriate context handling
-- **ConversationEmbedder**: Embeds conversation interactions for vector-based retrieval
-- **ConversationSummarizer**: Generates summaries of conversation history
-- **EnhancedConversation**: Extends the base Conversation class with vector-based retrieval
-- **FeedbackAnalyzer**: Analyzes user feedback patterns and generates insights
-- **QueryEnhancer**: Improves query formulation based on feedback patterns
-- **ModelFineTuner**: Fine-tunes embedding models using feedback data
-- **MonitoringDashboard**: Real-time system monitoring and performance tracking
+**Training Parameters**
+- Configurable through environment variables or API parameters
+- Supports various sentence-transformer base models
+- Validation tracking for monitoring overfitting
+- GPU support when available
+
+### 4. Model Deployment & Testing
+
+**A/B Testing Framework**
+- Compare baseline vs. fine-tuned model performance
+- Configurable traffic split (default 50/50)
+- Track multiple metrics: response quality, relevance, user satisfaction
+- Statistical significance testing with configurable thresholds
+- Automatic recommendations based on performance delta
+
+**Deployment Strategy**
+1. Generate training data (minimum 50 positive + 50 negative pairs)
+2. Fine-tune model (typically 2-4 hours depending on dataset size)
+3. Start A/B test with 24-48 hour duration
+4. Monitor results endpoint for statistical significance
+5. Deploy winning model based on recommendations
+
+### 5. Continuous Improvement Loop
+
+The system creates a continuous improvement cycle:
+
+```
+User Query → RAG Response → User Feedback → Training Data →
+Model Fine-Tuning → A/B Testing → Model Deployment → (repeat)
+```
+
+**Key Metrics Tracked**
+- Positive/negative pair counts
+- Hard negative mining success rate
+- Training loss and validation accuracy
+- A/B test statistical significance
+- User satisfaction trends over time
 
 ## Quick Start
 
-### Development Setup
+### Prerequisites
+- Python 3.8+
+- Ollama running locally (for embeddings)
+- ConPort MCP server configured
 
-1. **Clone and Setup**:
-   ```bash
-   git clone <repository-url>
-   cd ragtime-gal
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   pip install -r requirements.txt
-   ```
+### Installation
 
-2. **Configure Environment**:
-   ```bash
-   cp .env.template .env
-   # Edit .env with your configuration
-   ```
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd ragtime-gal
+```
 
-3. **Install Ollama and Models**:
-   ```bash
-   # Install Ollama (see https://ollama.ai)
-   ollama pull mistral  # For embeddings
-   ollama pull sixthwood  # For LLM inference
-   ```
+2. Install dependencies:
+```bash
+pipenv install
+```
 
-4. **Install Dependencies**:
-   ```bash
-   pipenv install
-   # or
-   pip install -r requirements.txt
-   ```
+3. Configure environment:
+```bash
+cp .env.template .env
+# Edit .env with your settings
+```
 
-5. **Start the Application**:
-   ```bash
-   python app.py
-   ```
+4. Start the server:
+```bash
+pipenv run python app.py
+```
 
-6. **Access the System**:
-   - Main Interface: `http://localhost:8084`
-   - Monitoring Dashboard: `http://localhost:8084/monitoring`
-   - Health Check: `http://localhost:8084/health`
-
-### Production Deployment
-
-1. **Docker Compose (Recommended)**:
-   ```bash
-   # Configure production environment
-   cp .env.template .env
-   # Edit .env with production settings
-
-   # Deploy with monitoring stack
-   docker-compose up -d
-
-   # Initialize models
-   docker exec ragtime-ollama ollama pull mistral
-   docker exec ragtime-ollama ollama pull sixthwood
-   ```
-
-2. **Access Production Services**:
-   - Application: `https://your-domain.com`
-   - Monitoring: `https://your-domain.com/monitoring`
-   - Grafana: `http://your-domain.com:3000`
-   - Prometheus: `http://your-domain.com:9090`
-
-### Using the System
-
-#### Document Management
-1. **Upload Documents**: Use the web interface to upload PDF or Markdown files
-2. **Organize Collections**: Group related documents into named collections
-3. **Monitor Processing**: Check the monitoring dashboard for embedding progress
-
-#### Querying and Feedback
-1. **Ask Questions**: Enter questions in the query interface
-2. **Select Response Style**: Choose from Standard, Creative, or Sixth Wood
-3. **Provide Feedback**: Rate responses and provide detailed feedback
-4. **Track Improvements**: Monitor system learning through the dashboard
-
-#### Advanced Features
-- **Conversation Context**: System maintains context across multiple questions
-- **Query Enhancement**: System suggests improved query formulations
-- **Model Fine-tuning**: Automatic model improvements based on feedback
-- **Performance Monitoring**: Real-time system performance tracking
+5. Access the web interface:
+```
+http://localhost:8084
+```
 
 ## Configuration
 
-### Environment Variables
-
-The system can be configured through environment variables in `.env`:
+Key environment variables (see `.env.template`):
 
 ```bash
-# Core Configuration
-LLM_MODEL=sixthwood                    # Language model to use
-EMBEDDING_MODEL=mistral                # Embedding model to use
-CHROMA_PERSIST_DIR=./chroma_db        # Vector database directory
-OLLAMA_BASE_URL=http://localhost:11434 # Ollama API URL
-RETRIEVAL_K=4                         # Number of documents to retrieve
-TEMPERATURE=0.7                       # Response creativity
-MAX_TOKENS=500                        # Maximum response length
+# Server Configuration
+PORT=8084
+DEBUG=False
+SECRET_KEY=your-secret-key
 
-# Feedback System
-FEEDBACK_ENABLED=true                 # Enable feedback collection
-FEEDBACK_ANALYTICS_ENABLED=true      # Enable feedback analytics
-QUERY_ENHANCEMENT_ENABLED=true       # Enable query enhancement
+# Ollama Configuration
+OLLAMA_BASE_URL=http://localhost:11434
+EMBEDDING_MODEL=mistral
 
-# Model Fine-tuning
-FINETUNING_ENABLED=true              # Enable model fine-tuning
-AB_TESTING_ENABLED=true              # Enable A/B testing
-TRAINING_DATA_MIN_SAMPLES=100        # Minimum samples for training
+# Storage Paths
+TEMP_FOLDER=./_temp
+CHROMA_PERSIST_DIR=./chroma_db
 
-# Monitoring
-MONITORING_ENABLED=true              # Enable monitoring dashboard
-METRICS_COLLECTION_INTERVAL=30       # Metrics collection interval (seconds)
-ALERT_EMAIL=admin@your-domain.com    # Alert email address
-
-# Security
-SECRET_KEY=your-secret-key-here      # Flask secret key
-ALLOWED_HOSTS=localhost,your-domain.com # Allowed hosts
-CORS_ORIGINS=https://your-domain.com # CORS origins
+# Training Configuration
+TRAINING_DATA_PATH=./training_data
+FINETUNED_MODELS_PATH=./fine_tuned_models
+BASE_MODEL_NAME=all-MiniLM-L6-v2
+BATCH_SIZE=16
+NUM_EPOCHS=4
+LEARNING_RATE=2e-5
 ```
-
-### Template Customization
-
-The system uses a unified template structure defined in `prompt_templates.json`:
-
-```json
-{
-  "base_templates": {
-    "standard": "You are a helpful assistant...",
-    "creative": "You are a creative and engaging assistant...",
-    "sixthwood": "You are a specialized assistant..."
-  },
-  "system_instructions": {
-    "standard": "Provide accurate and helpful responses...",
-    "creative": "Be creative and engaging in your responses...",
-    "sixthwood": "Follow the Sixth Wood methodology..."
-  },
-  "context_formats": {
-    "initial": "Based on the following documents:\n{documents}",
-    "follow_up": "Continuing our conversation:\n{conversation}\n\nNew documents:\n{documents}",
-    "with_previous_content": "Previous context:\n{previous}\n\nNew information:\n{documents}"
-  }
-}
-```
-
-### Monitoring Configuration
-
-Configure monitoring thresholds and settings:
-
-```bash
-# Alert Thresholds
-ALERT_CPU_WARNING=80                 # CPU usage warning threshold (%)
-ALERT_CPU_CRITICAL=90               # CPU usage critical threshold (%)
-ALERT_MEMORY_WARNING=85             # Memory usage warning threshold (%)
-ALERT_MEMORY_CRITICAL=95            # Memory usage critical threshold (%)
-ALERT_ERROR_RATE_WARNING=5          # Error rate warning threshold (%)
-ALERT_ERROR_RATE_CRITICAL=10        # Error rate critical threshold (%)
-ALERT_RESPONSE_TIME_WARNING=5       # Response time warning threshold (seconds)
-ALERT_RESPONSE_TIME_CRITICAL=10     # Response time critical threshold (seconds)
-
-# Dashboard Settings
-DASHBOARD_REFRESH_INTERVAL=30       # Dashboard refresh interval (seconds)
-DASHBOARD_RETENTION_HOURS=168       # Data retention period (hours)
-DASHBOARD_AUTH_ENABLED=true         # Enable dashboard authentication
-```
-
-## API Reference
-
-### Core Endpoints
-
-- `POST /embed` - Upload and embed documents
-- `POST /query` - Submit queries to the system
-- `POST /feedback` - Submit user feedback
-- `GET /collections` - List document collections
-- `GET /health` - System health check
-
-### Monitoring Endpoints
-
-- `GET /monitoring` - Monitoring dashboard
-- `GET /monitoring/api/metrics` - System metrics
-- `GET /monitoring/api/alerts` - Active alerts
-- `GET /monitoring/api/health` - Detailed health status
-
-### Phase 3 Endpoints (Model Fine-tuning)
-
-- `POST /training/generate-data` - Generate training data
-- `POST /training/fine-tune` - Start model fine-tuning
-- `GET /training/status/{job_id}` - Check training status
-- `POST /testing/ab-test/start` - Start A/B test
-- `GET /testing/ab-test/{test_id}/results` - Get A/B test results
-
-For complete API documentation, see [`API_DOCUMENTATION.md`](API_DOCUMENTATION.md).
 
 ## Documentation
 
-### User Documentation
-- [`USER_GUIDE.md`](USER_GUIDE.md) - Comprehensive user guide with tutorials and troubleshooting
-- [`API_DOCUMENTATION.md`](API_DOCUMENTATION.md) - Complete REST API reference
+Detailed documentation available in the `docs/` directory:
 
-### Technical Documentation
-- [`SYSTEM_ARCHITECTURE.md`](SYSTEM_ARCHITECTURE.md) - Detailed system architecture and design
-- [`DEVELOPER_GUIDE.md`](DEVELOPER_GUIDE.md) - Development setup, code organization, and extension guides
-- [`DEPLOYMENT_GUIDE.md`](DEPLOYMENT_GUIDE.md) - Production deployment and configuration
+- [API Documentation](docs/API_DOCUMENTATION.md) - Complete API reference
+- [System Architecture](docs/SYSTEM_ARCHITECTURE.md) - Technical architecture details
+- [ConPort Integration](docs/CONPORT_INTEGRATION.md) - MCP integration guide
+- [User Guide](docs/USER_GUIDE.md) - End-user documentation
 
-### Phase Documentation
-- [`PHASE3_README.md`](PHASE3_README.md) - Model fine-tuning system documentation
-- [`PHASE4_README.md`](PHASE4_README.md) - Testing and validation documentation
-- [`PHASE5_README.md`](PHASE5_README.md) - Documentation and monitoring system
+## Architecture
 
-## Testing
+### Technology Stack
+- **Backend**: Flask (Python)
+- **Vector Database**: Chroma
+- **Embeddings**: Ollama (local, mistral model)
+- **MCP Protocol**: Model Context Protocol for VSCode integration
+- **Training**: sentence-transformers, PyTorch
+- **Monitoring**: Custom monitoring dashboard with real-time metrics
 
-### Running Tests
-
-```bash
-# Run all tests
-pytest
-
-# Run specific test categories
-pytest tests/unit/           # Unit tests
-pytest tests/integration/    # Integration tests
-pytest tests/performance/    # Performance tests
-
-# Run with coverage
-pytest --cov=. --cov-report=html
-
-# Run tests in parallel
-pytest -n auto
-```
-
-### Test Categories
-
-- **Unit Tests**: Individual component testing
-- **Integration Tests**: End-to-end workflow testing
-- **Performance Tests**: Load testing and benchmarking
-- **Validation Tests**: System improvement effectiveness
-- **Regression Tests**: Backward compatibility assurance
-
-## Monitoring and Observability
-
-### Real-time Monitoring Dashboard
-
-The integrated monitoring dashboard provides comprehensive system observability:
-
-**Access**: `http://localhost:8084/monitoring`
-
-**Features**:
-- **System Metrics**: Real-time CPU, memory, disk usage, and network connections
-- **Application Performance**: Response times, error rates, and request throughput
-- **Feedback Analytics**: User ratings, trends, and satisfaction indicators
-- **Visual Charts**: 24-hour performance trends and rating distributions
-- **Active Alerts**: Color-coded alerts with severity levels and resolution actions
-
-**Key Metrics Tracked**:
-- System performance metrics (CPU, memory, disk usage)
-- Application metrics (response times, error rates, throughput)
-- Feedback system metrics (ratings, trends, improvement indicators)
-- Model performance tracking (accuracy, relevance, user satisfaction)
-
-**API Endpoints**:
-- `GET /monitoring` - Interactive dashboard interface
-- `GET /monitoring/api/metrics?hours=24` - Retrieve metrics data (JSON)
-- `GET /monitoring/api/alerts` - Get active system alerts (JSON)
-- `GET /monitoring/api/health` - Detailed health status (JSON)
-- `POST /monitoring/api/alerts/<id>/resolve` - Resolve specific alert
-
-**Automatic Monitoring**:
-The system automatically monitors all API routes (query, embed, feedback) and collects metrics every 30 seconds.
-
-### Alerting
-- Configurable alert thresholds for all metrics
-- Multiple alert levels (info, warning, error, critical)
-- Email and webhook notifications (configurable)
-- Alert resolution tracking and escalation
-- Automatic alerts for: High CPU (>80%), High Memory (>85%), High Error Rate (>5%), Slow Responses (>5s)
-
-### Analytics
-- User feedback trends and patterns
-- Query performance analytics
-- Model fine-tuning effectiveness
-- System usage statistics
-
-## Security
-
-### Authentication and Authorization
-- Session-based authentication for web interface
-- API key authentication for programmatic access
-- Role-based access control for monitoring endpoints
-- Secure secret management
-
-### Data Protection
-- Local data storage by default (no external data sharing)
-- Optional encryption at rest
-- Secure session management
-- Input validation and sanitization
-- GDPR compliance ready
-
-### Network Security
-- HTTPS/TLS encryption
-- Rate limiting on API endpoints
-- CORS configuration
-- Firewall recommendations
-
-## Performance and Scalability
-
-### Performance Optimization
-- Efficient vector database operations
-- Conversation history caching
-- Template pre-compilation
-- Batch processing for embeddings
-- Connection pooling and resource management
-
-### Scalability Features
-- Horizontal scaling with Docker Compose
-- Load balancing with Nginx
-- Database sharding support
-- Distributed processing capabilities
-- Auto-scaling policies
-
-### Resource Requirements
-- **Minimum**: 4 CPU cores, 8GB RAM, 50GB storage
-- **Recommended**: 8+ CPU cores, 16GB+ RAM, 100GB+ SSD storage
-- **GPU**: Optional for model fine-tuning acceleration
-
-## Implementation Highlights
-
-This system implements a modern approach to conversational RAG with:
-
-1. **Feedback-Driven Learning**: Continuous improvement based on user feedback
-2. **Multi-Phase Architecture**: Modular design with clear separation of concerns
-3. **Production-Ready Monitoring**: Comprehensive observability and alerting
-4. **Automated Model Fine-tuning**: Self-improving embedding models
-5. **Comprehensive Testing**: Reliability assurance through extensive testing
-6. **Complete Documentation**: User and technical documentation for all aspects
-7. **Security-First Design**: Built-in security features and best practices
-8. **Scalable Deployment**: Container-based deployment with orchestration support
+### Key Components
+- **app.py**: Main Flask application with all API endpoints
+- **embed.py/embed_enhanced.py**: Document processing and embedding
+- **query.py**: Query execution with conversation context
+- **feedback_analyzer.py**: Feedback pattern analysis
+- **query_enhancer.py**: Query optimization and re-ranking
+- **training_data_generator.py**: Training pair generation
+- **model_finetuner.py**: Model fine-tuning pipeline
+- **monitoring_dashboard.py**: Performance monitoring system
+- **conport_client.py**: ConPort MCP client integration
 
 ## Contributing
 
-### Development Workflow
+This project combines RAG capabilities with MCP server functionality. When contributing:
 
-1. **Fork and Clone**: Fork the repository and clone your fork
-2. **Create Branch**: Create a feature branch for your changes
-3. **Development**: Make your changes following the coding standards
-4. **Testing**: Run the full test suite and add tests for new features
-5. **Documentation**: Update documentation for any new features
-6. **Pull Request**: Submit a pull request with a clear description
-
-### Coding Standards
-
-- **Python**: Follow PEP 8, use type hints, include docstrings
-- **Testing**: Maintain >90% test coverage, include unit and integration tests
-- **Documentation**: Update relevant documentation for all changes
-- **Security**: Follow security best practices, validate all inputs
-
-### Extension Points
-
-The system is designed for extensibility:
-
-- **Custom Feedback Analyzers**: Implement domain-specific feedback analysis
-- **Custom Query Enhancers**: Add specialized query improvement logic
-- **Custom Embedding Models**: Integrate new embedding models
-- **Custom Monitoring Metrics**: Add application-specific metrics
-- **Custom Templates**: Create specialized response templates
-
-For detailed development information, see [`DEVELOPER_GUIDE.md`](DEVELOPER_GUIDE.md).
-
-## Troubleshooting
-
-### Common Issues
-
-**System Not Starting**:
-- Check Ollama is running: `ollama list`
-- Verify environment variables in `.env`
-- Check port availability (8084, 11434)
-
-**Poor Response Quality**:
-- Ensure documents are properly embedded
-- Check feedback patterns in monitoring dashboard
-- Verify model configuration and templates
-
-**Performance Issues**:
-- Monitor system resources in dashboard
-- Check database optimization settings
-- Review alert thresholds and system limits
-
-**Monitoring Dashboard Not Loading**:
-- Verify monitoring is enabled in configuration
-- Check authentication settings
-- Review browser console for errors
-
-For comprehensive troubleshooting, see [`USER_GUIDE.md`](USER_GUIDE.md#troubleshooting).
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Support
-
-### Getting Help
-
-1. **Documentation**: Check the comprehensive documentation first
-2. **Issues**: Search existing GitHub issues or create a new one
-3. **Discussions**: Use GitHub Discussions for questions and ideas
-4. **Community**: Join our community channels for support
-
-### Reporting Issues
-
-When reporting issues, please include:
-- System information (OS, Python version, Docker version)
-- Configuration details (anonymized)
-- Steps to reproduce the issue
-- Error messages and logs
-- Expected vs actual behavior
-
-### Feature Requests
-
-We welcome feature requests! Please:
-- Check existing issues and discussions first
-- Provide clear use cases and requirements
-- Consider contributing the implementation
-- Follow the feature request template
-
-## Roadmap
-
-### Upcoming Features
-
-- **Advanced Analytics**: Machine learning insights from feedback data
-- **Multi-language Support**: Support for non-English documents and queries
-- **Cloud Integration**: Native cloud provider integrations
-- **Mobile Interface**: Mobile-optimized interface and apps
-- **Advanced Security**: Enhanced authentication and authorization
-- **Plugin Architecture**: Extensible plugin system for custom functionality
-
-### Long-term Vision
-
-- **Autonomous Learning**: Fully autonomous system improvement
-- **Multi-modal Support**: Support for images, audio, and video
-- **Federated Learning**: Distributed learning across multiple instances
-- **Advanced Reasoning**: Integration with reasoning and planning capabilities
+1. Test both web UI and MCP tool functionality
+2. Ensure ConPort integration remains functional
+3. Validate feedback collection and analytics
+4. Test training pipeline with sufficient data
+5. Update documentation for new features
 
 ## Acknowledgments
 
-This project builds upon excellent open-source technologies:
-
-- **Ollama**: Local LLM inference engine
-- **ChromaDB**: Vector database for embeddings
-- **Sentence Transformers**: State-of-the-art embedding models
-- **Flask**: Web framework for API and interface
-- **Docker**: Containerization and deployment
-- **Prometheus & Grafana**: Monitoring and observability
-- **Chart.js**: Interactive dashboard charts
-
-Special thanks to the open-source community for making this project possible.
-
----
-
-*The Feedback-Driven RAG System represents a comprehensive approach to building self-improving AI systems that learn from user feedback and continuously enhance their performance. With complete documentation, monitoring, and production-ready deployment, it provides a solid foundation for building intelligent document-based question answering systems.*
+Built with:
+- LangChain for RAG orchestration
+- ChromaDB for vector storage
+- Ollama for local embeddings
+- sentence-transformers for fine-tuning
+- Flask for web framework
+- ConPort for project memory management

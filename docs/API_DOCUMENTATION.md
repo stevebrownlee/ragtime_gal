@@ -52,7 +52,7 @@ http://localhost:8084/api/v1
 
 ### Current Version
 - **API Version**: 1.0
-- **System Version**: Phase 5 (Documentation and Monitoring)
+- **System Version**: Phase 3 (Model Fine-tuning)
 
 ## Core Endpoints
 
