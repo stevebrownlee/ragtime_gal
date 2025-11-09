@@ -1,0 +1,30 @@
+{
+  "key": "2af95095-53b6-435a-bc56-448ba8093aba",
+  "value": {
+    "feedback_id": "2af95095-53b6-435a-bc56-448ba8093aba",
+    "timestamp": 1762638622.873259,
+    "session_id": "unknown",
+    "rating": 5,
+    "query": "What is the plot timeline for Act 3 of the novel?\n",
+    "response": "<p>Act 3: The Unraveling Veil</p>\n<p><strong>Part One: Revelations</strong></p>\n<ul>\n<li>\n<p><strong>Chapter 74: Arrival at Elm</strong></p>\n<ul>\n<li>Iris's group returns to Elm Arbory after their journey</li>\n<li>They discover Linnea has taken control, with practitioners from all traditions joining her cause</li>\n<li>Rowan is under house arrest; other Elders missing or corrupted</li>\n</ul>\n</li>\n<li>\n<p><strong>Chapter 75: The Hidden Resistance</strong></p>\n<ul>\n<li>Laurel reunites with her father, who reveals he's been secretly working against Linnea</li>\n<li>They join forces with Reed and Fern to plan countermeasures</li>\n<li>Alder remains enigmatic but helpful in gathering information</li>\n</ul>\n</li>\n<li>\n<p><strong>Chapter 76: Rowan's Escape</strong></p>\n<ul>\n<li>Iris and Alder orchestrate Rowan's escape from Linnea's influence</li>\n<li>They discover the extent of corruption, with many practitioners now under Veilia's control</li>\n</ul>\n</li>\n</ul>\n<p><strong>Part Two: Countermeasures</strong></p>\n<ul>\n<li>\n<p><strong>Chapter 77: The Yew Harmony Manifesto</strong></p>\n<ul>\n<li>Iris drafts a manifesto outlining the true purpose and history of Yew Harmony</li>\n<li>She shares it with key practitioners to rally support for their cause</li>\n</ul>\n</li>\n<li>\n<p><strong>Chapter 78: The Birch Elders' Defection</strong></p>\n<ul>\n<li>Sorcha, Hazel, and other Birch Elders join their resistance after seeing Linnea's corruption firsthand</li>\n<li>They provide crucial clarity techniques against Veilia's influence</li>\n</ul>\n</li>\n<li>\n<p><strong>Chapter 79: Fir's Strategic Retreat</strong></p>\n<ul>\n<li>Fir Elders retreat to their mountain strongholds to protect their traditions from corruption</li>\n<li>They agree to support the rebellion covertly, providing strategic advice and resources</li>\n</ul>\n</li>\n</ul>\n<p><strong>Part Three: Confrontation</strong></p>\n<ul>\n<li>\n<p><strong>Chapter 80: The Corrupted Celebration</strong></p>\n<ul>\n<li>Linnea hosts a corrupted celebration to consolidate power over all traditions</li>\n<li>Iris's group infiltrates, aiming to expose Veilia's influence during the event</li>\n</ul>\n</li>\n<li>\n<p><strong>Chapter 81: The Elders' Showdown</strong></p>\n<ul>\n<li>Rowan challenges Linnea publicly, revealing her corruption and Veilia's control</li>\n<li>A chaotic battle ensues between loyalists and rebels, with each Elder fighting their corrupted counterpart</li>\n</ul>\n</li>\n<li>\n<p><strong>Chapter 82: The Final Harmony</strong></p>\n<ul>\n<li>Iris performs the ancient Yew harmony to banish Veilia permanently</li>\n<li>With Veilia gone, Linnea's influence collapses; practitioners begin recovering from corruption</li>\n</ul>\n</li>\n</ul>\n<p><strong>Epilogue</strong></p>\n<ul>\n<li><strong>Chapter 83: Rebuilding</strong><ul>\n<li>In the aftermath, Elders work together to rebuild their traditions and heal from corruption</li>\n<li>Iris is hailed as a heroine for her role in exposing Veilia and restoring balance</li>\n<li>Alder's true motives are revealed, leading to his departure from I'lyr</li>\n</ul>\n</li>\n</ul>\n<p>This immersive response provides a detailed outline of Act 3's plot timeline, capturing the essence of the Harmonies of I'lyr style while maintaining consistency with established world-building elements.</p>",
+    "detailed_feedback": {
+      "relevance": "very_relevant",
+      "completeness": "complete",
+      "length": "just_right",
+      "comments": ""
+    },
+    "document_ids": [],
+    "metadata": {},
+    "conversation_context": {
+      "history_length": 0,
+      "is_follow_up": false
+    }
+  },
+  "metadata": {
+    "rating": 5,
+    "timestamp": 1762638622.873259,
+    "session_id": "unknown"
+  },
+  "timestamp": "2025-11-08T16:50:22.873488",
+  "workspace_id": "/Users/chortlehoort/Code/Steve/ragtime-gal"
+}

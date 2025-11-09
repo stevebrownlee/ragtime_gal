@@ -830,11 +830,15 @@
             }
 
             availableCollections.forEach(collection => {
-                const option = document.createElement('option');
-                option.value = collection.name;
-                option.textContent = `${collection.name} (${collection.document_count} docs)`;
-                existingCollectionsSelect.appendChild(option);
-                queryCollectionsSelect.appendChild(option);
+                const uploadOption = document.createElement('option');
+                uploadOption.value = collection.name;
+                uploadOption.textContent = `${collection.name} (${collection.document_count} docs)`;
+                existingCollectionsSelect.appendChild(uploadOption);
+
+                const promptOption = document.createElement('option');
+                promptOption.value = collection.name;
+                promptOption.textContent = `${collection.name} (${collection.document_count} docs)`;
+                queryCollectionsSelect.appendChild(promptOption);
             });
         }
 
@@ -1046,7 +1050,7 @@
 
             // Add temperature if provided
             if (temperatureInput && temperatureInput.value) {
-                requestData.temperature = parseFloat(temperatureInput.value);
+                requestData.temperature = parseFloat(temperatureInput.value/10);
             }
 
             try {
