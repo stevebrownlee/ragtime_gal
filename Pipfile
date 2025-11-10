@@ -28,6 +28,10 @@ psutil = "*"
 sentence-transformers = "*"
 torch = "*"
 pandas = "*"
+# Maturity improvements dependencies
+pydantic = ">=2.0"
+pydantic-settings = "*"
+structlog = "*"
 
 [dev-packages]
 black = "*"
