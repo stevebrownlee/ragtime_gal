@@ -12,10 +12,9 @@ import time
 import json
 import logging
 import threading
-from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional, Tuple
-from dataclasses import dataclass, asdict
-from collections import defaultdict, deque
+from typing import Dict, List, Optional
+from dataclasses import dataclass
+from collections import deque
 import statistics
 import psutil
 import sqlite3
@@ -178,8 +177,12 @@ class MetricsCollector:
         memory = psutil.virtual_memory()
         disk = psutil.disk_usage('/')
 
-        # Network connections (approximate)
-        connections = len(psutil.net_connections())
+        # Network connections (approximate) - requires elevated privileges on macOS
+        try:
+            connections = len(psutil.net_connections())
+        except (psutil.AccessDenied, PermissionError, OSError):
+            # Fallback: use process count as rough approximation
+            connections = len(psutil.pids())
 
         # Response time average
         with self.lock:

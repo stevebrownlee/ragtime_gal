@@ -23,7 +23,9 @@ class Settings(BaseSettings):
         env_file='.env',
         env_file_encoding='utf-8',
         case_sensitive=False,
-        extra='ignore'  # Ignore extra fields from .env
+        extra='ignore',  # Ignore extra fields from .env
+        validate_assignment=True,
+        use_enum_values=True
     )
 
     # Server Configuration
@@ -199,11 +201,6 @@ class Settings(BaseSettings):
     def get_secret_key_str(self) -> str:
         """Get the secret key as a plain string"""
         return self.secret_key.get_secret_value()
-
-    class Config:
-        """Pydantic configuration"""
-        validate_assignment = True
-        use_enum_values = True
 
 
 # Global settings instance
