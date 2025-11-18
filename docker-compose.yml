@@ -15,7 +15,7 @@ services:
       - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
       - CHROMA_PERSIST_DIR=/app/data/chroma_db
       - TEMP_FOLDER=/app/data/temp
-      - LLM_MODEL=${LLM_MODEL:-sixthwood}
+      - LLM_MODEL=${LLM_MODEL:-ilyr}
       - EMBEDDING_MODEL=${EMBEDDING_MODEL:-mistral}
       - OLLAMA_BASE_URL=http://ollama:11434
       - RETRIEVAL_K=${RETRIEVAL_K:-4}

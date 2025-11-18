@@ -89,7 +89,7 @@ class TemplateManager:
         Get a prompt using the new template format.
 
         Args:
-            style: The base style (standard, creative, sixthwood)
+            style: The base style (standard, creative, ilyr)
             query_type: The type of query (initial, follow_up, with_previous_content)
             context_params: Parameters for context formatting
 
@@ -151,7 +151,7 @@ class TemplateManager:
         Get the system instruction for a given style.
 
         Args:
-            style: The base style (standard, creative, sixthwood)
+            style: The base style (standard, creative, ilyr)
 
         Returns:
             The system instruction string or empty string if not found

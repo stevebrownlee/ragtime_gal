@@ -32,6 +32,8 @@ pandas = "*"
 pydantic = ">=2.0"
 pydantic-settings = "*"
 structlog = "*"
+pydantic-ai = "*"
+openai = "*"
 
 [dev-packages]
 black = "*"

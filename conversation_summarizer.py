@@ -25,7 +25,7 @@ class ConversationSummarizer:
             model: The LLM model to use for summarization
             base_url: The base URL for the Ollama API
         """
-        self.model = model or os.getenv('LLM_MODEL', 'sixthwood')
+        self.model = model or os.getenv('LLM_MODEL', 'ilyr')
         self.base_url = base_url or os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')
 
         # Initialize LLM for summarization

@@ -89,7 +89,7 @@ class ContextManager:
             query: The user's query
             conversation: The conversation object
             retrieved_docs: List of retrieved documents
-            style: The prompt style (standard, creative, sixthwood)
+            style: The prompt style (standard, creative, ilyr)
 
         Returns:
             Dictionary containing prompt and metadata

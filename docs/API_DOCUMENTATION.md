@@ -143,7 +143,7 @@ Content-Type: application/json
 
 **Parameters:**
 - `query` (required): The question or query text
-- `template` (optional): Response style ("standard", "creative", "sixthwood")
+- `template` (optional): Response style ("standard", "creative", "ilyr")
 - `temperature` (optional): Response creativity (0.0-1.0, default: 0.7)
 - `collection_name` (optional): Target collection to search
 - `max_tokens` (optional): Maximum response length

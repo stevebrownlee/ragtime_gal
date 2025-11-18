@@ -474,7 +474,7 @@ class Settings(BaseSettings):
         description="Ollama embedding model name"
     )
     llm_model: str = Field(
-        default="sixthwood",
+        default="ilyr",
         description="Ollama LLM model name"
     )
     llm_temperature: float = Field(

@@ -19,158 +19,117 @@ class Settings(BaseSettings):
     Loads from .env file in project root by default.
     """
 
+    ollama_openai_base_url: str = Field(
+        default="http://localhost:11434/v1",
+        description="Ollama OpenAI-compatible endpoint",
+    )
+
+    use_pydantic_ai: bool = Field(
+        default=False,
+        description="Use Pydantic AI instead of LangChain for orchestration",
+    )
+
     model_config = SettingsConfigDict(
-        env_file='.env',
-        env_file_encoding='utf-8',
+        env_file=".env",
+        env_file_encoding="utf-8",
         case_sensitive=False,
-        extra='ignore',  # Ignore extra fields from .env
+        extra="ignore",  # Ignore extra fields from .env
         validate_assignment=True,
-        use_enum_values=True
+        use_enum_values=True,
     )
 
     # Server Configuration
     port: int = Field(default=8084, description="Server port")
     debug: bool = Field(default=False, description="Debug mode")
     secret_key: SecretStr = Field(
-        default="change-me-in-production",
-        description="Flask secret key for sessions"
+        default="change-me-in-production", description="Flask secret key for sessions"
     )
 
     # Model Configuration
     embedding_model: str = Field(
-        default="mistral",
-        description="Ollama embedding model name"
+        default="mistral", description="Ollama embedding model name"
     )
-    llm_model: str = Field(
-        default="sixthwood",
-        description="Ollama LLM model name"
-    )
+    llm_model: str = Field(default="ilyr", description="Ollama LLM model name")
     llm_temperature: float = Field(
-        default=0.7,
-        ge=0.0,
-        le=2.0,
-        description="LLM temperature for generation"
+        default=0.7, ge=0.0, le=2.0, description="LLM temperature for generation"
     )
 
     # Output Configuration
     max_output_tokens: int = Field(
-        default=16384,
-        ge=1,
-        description="Maximum output tokens"
+        default=16384, ge=1, description="Maximum output tokens"
     )
     repeat_penalty: float = Field(
-        default=1.1,
-        ge=0.0,
-        description="Repeat penalty for generation"
+        default=1.1, ge=0.0, description="Repeat penalty for generation"
     )
     top_k: int = Field(default=40, ge=1, description="Top-K sampling")
-    top_p: float = Field(
-        default=0.9,
-        ge=0.0,
-        le=1.0,
-        description="Top-P sampling"
-    )
+    top_p: float = Field(default=0.9, ge=0.0, le=1.0, description="Top-P sampling")
 
     # Vector Database Configuration
     chroma_host: str = Field(default="localhost", description="Chroma server host")
     chroma_port: int = Field(default=8000, description="Chroma server port")
     default_collection: str = Field(
-        default="langchain",
-        description="Default collection name"
+        default="langchain", description="Default collection name"
     )
 
     # Document Processing
     chunk_size: int = Field(
-        default=7500,
-        ge=100,
-        description="Document chunk size in characters"
+        default=7500, ge=100, description="Document chunk size in characters"
     )
     chunk_overlap: int = Field(
-        default=100,
-        ge=0,
-        description="Chunk overlap in characters"
+        default=100, ge=0, description="Chunk overlap in characters"
     )
 
     # Retrieval Configuration
     default_k: int = Field(
-        default=10,
-        ge=1,
-        le=50,
-        description="Default number of documents to retrieve"
+        default=10, ge=1, le=50, description="Default number of documents to retrieve"
     )
     similarity_threshold: float = Field(
         default=0.7,
         ge=0.0,
         le=1.0,
-        description="Minimum similarity score for retrieval"
+        description="Minimum similarity score for retrieval",
     )
 
     # ConPort Configuration
     conport_workspace_id: Optional[str] = Field(
-        default=None,
-        description="ConPort workspace ID (usually project root path)"
+        default=None, description="ConPort workspace ID (usually project root path)"
     )
 
     # Feedback Configuration
     positive_feedback_threshold: int = Field(
-        default=4,
-        ge=1,
-        le=5,
-        description="Rating threshold for positive feedback"
+        default=4, ge=1, le=5, description="Rating threshold for positive feedback"
     )
     negative_feedback_threshold: int = Field(
-        default=2,
-        ge=1,
-        le=5,
-        description="Rating threshold for negative feedback"
+        default=2, ge=1, le=5, description="Rating threshold for negative feedback"
     )
 
     # Training Configuration
     min_positive_pairs: int = Field(
-        default=50,
-        ge=1,
-        description="Minimum positive training pairs required"
+        default=50, ge=1, description="Minimum positive training pairs required"
     )
     min_negative_pairs: int = Field(
-        default=50,
-        ge=1,
-        description="Minimum negative training pairs required"
+        default=50, ge=1, description="Minimum negative training pairs required"
     )
     hard_negative_similarity: float = Field(
         default=0.7,
         ge=0.0,
         le=1.0,
-        description="Similarity threshold for hard negatives"
+        description="Similarity threshold for hard negatives",
     )
 
     # Logging Configuration
     log_level: str = Field(default="INFO", description="Logging level")
-    log_format: str = Field(
-        default="json",
-        description="Log format (json or console)"
-    )
-    log_file: Optional[Path] = Field(
-        default=None,
-        description="Optional log file path"
-    )
+    log_format: str = Field(default="json", description="Log format (json or console)")
+    log_file: Optional[Path] = Field(default=None, description="Optional log file path")
 
     # Performance Configuration
     enable_caching: bool = Field(
-        default=True,
-        description="Enable query result caching"
+        default=True, description="Enable query result caching"
     )
-    cache_ttl: int = Field(
-        default=3600,
-        ge=0,
-        description="Cache TTL in seconds"
-    )
-    max_cache_size: int = Field(
-        default=1000,
-        ge=1,
-        description="Maximum cache entries"
-    )
+    cache_ttl: int = Field(default=3600, ge=0, description="Cache TTL in seconds")
+    max_cache_size: int = Field(default=1000, ge=1, description="Maximum cache entries")
 
-    @field_validator('conport_workspace_id', mode='before')
+    @field_validator("conport_workspace_id", mode="before")
     @classmethod
     def set_default_workspace_id(cls, v):
         """Set default workspace ID to project root if not provided"""
@@ -178,21 +137,21 @@ class Settings(BaseSettings):
             return str(Path.cwd())
         return v
 
-    @field_validator('log_level')
+    @field_validator("log_level")
     @classmethod
     def validate_log_level(cls, v: str) -> str:
         """Validate log level is valid"""
-        valid_levels = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
+        valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
         v_upper = v.upper()
         if v_upper not in valid_levels:
             raise ValueError(f"log_level must be one of {valid_levels}")
         return v_upper
 
-    @field_validator('log_format')
+    @field_validator("log_format")
     @classmethod
     def validate_log_format(cls, v: str) -> str:
         """Validate log format is valid"""
-        valid_formats = ['json', 'console']
+        valid_formats = ["json", "console"]
         v_lower = v.lower()
         if v_lower not in valid_formats:
             raise ValueError(f"log_format must be one of {valid_formats}")
