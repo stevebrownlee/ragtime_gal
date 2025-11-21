@@ -11,14 +11,14 @@ import secrets
 from dotenv import load_dotenv
 from flask import Flask, render_template_string
 
-# Import template loader
-from template import load_html_template
+# Import template loader from ragtime package
+from ragtime.utils.templates import load_html_template
 
-# Import ConPort client
-from conport_client import initialize_conport_client
+# Import ConPort client from ragtime package
+from ragtime.storage.conport_client import initialize_conport_client
 
-# Import monitoring dashboard
-from monitoring_dashboard import (
+# Import monitoring dashboard from ragtime package
+from ragtime.monitoring.dashboard import (
     create_monitoring_blueprint,
     start_monitoring
 )

@@ -14,11 +14,11 @@ import openai
 from ragtime.config.settings import get_settings
 from ragtime.models.queries import QueryRequest, QueryResponse, RetrievedDocument
 
-# Import existing managers (unchanged)
-from template_manager import TemplateManager
-from context_manager import ContextManager
-from feedback_analyzer import create_feedback_analyzer
-from query_enhancer import create_query_enhancer
+# Import existing managers (now from ragtime package)
+from ragtime.utils.templates import TemplateManager
+from ragtime.core.context_manager import ContextManager
+from ragtime.services.feedback_analyzer import create_feedback_analyzer
+from ragtime.services.query_enhancer import create_query_enhancer
 
 # Import vector DB (Stage 1: keep LangChain version)
 from ragtime.storage.vector_db import get_vector_db

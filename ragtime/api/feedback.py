@@ -22,8 +22,8 @@ from flask import Blueprint, request, jsonify, session
 from ragtime.config.settings import get_settings
 from ragtime.services.feedback_analyzer import create_feedback_analyzer
 
-# Temporary imports from root (will be migrated later)
-from enhanced_conversation import (
+# Imports from ragtime package
+from ragtime.services.conversation import (
     get_enhanced_conversation_from_session as get_conversation_from_session
 )
 

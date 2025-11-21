@@ -1,10 +1,11 @@
-
 """
 Monitoring Dashboard for Feedback-Driven RAG System
 
 This module implements comprehensive monitoring and alerting capabilities
 for the RAG system, including real-time metrics collection, performance
 tracking, and health monitoring.
+
+Migrated from root monitoring_dashboard.py to ragtime.monitoring package.
 """
 
 import os

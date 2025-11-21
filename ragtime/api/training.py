@@ -22,9 +22,10 @@ from flask import Blueprint, request, jsonify
 # Import from new structure
 from ragtime.config.settings import get_settings
 
-# Temporary imports from root (will be migrated later)
-from training_data_generator import create_training_data_generator
-from model_finetuner import create_model_finetuner, FineTuningConfig
+# Imports from ragtime package
+from ragtime.services.training_data_gen import create_training_data_generator
+from ragtime.services.model_finetuner import create_model_finetuner
+from ragtime.models.training import FineTuningConfig
 from langchain_chroma import Chroma
 from langchain_ollama import OllamaEmbeddings
 

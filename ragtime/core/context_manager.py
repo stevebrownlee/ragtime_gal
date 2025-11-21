@@ -1,13 +1,18 @@
 """
-context_manager.py - Manages context for conversational RAG
+Context Manager for Conversational RAG
+
+Manages context for conversational RAG, handling the selection and formatting
+of context for different query types.
+
+Migrated from root context_manager.py to ragtime.core package.
 """
 
 import logging
 from typing import Dict, Any, Optional, List
 
-from template_manager import TemplateManager
-from query_classifier import QueryClassifier
-from conversation_summarizer import ConversationSummarizer
+from ragtime.utils.templates import TemplateManager
+from ragtime.core.query_classifier import QueryClassifier
+from ragtime.services.conversation import ConversationSummarizer
 
 logger = logging.getLogger(__name__)
 

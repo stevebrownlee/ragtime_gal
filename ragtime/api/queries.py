@@ -21,12 +21,12 @@ import markdown
 from ragtime.config.settings import get_settings
 from ragtime.core.query_processor import query
 
-# Temporary imports from root (will be migrated later)
-from enhanced_conversation import (
+# Imports from ragtime package
+from ragtime.services.conversation import (
     get_enhanced_conversation_from_session as get_conversation_from_session,
-    update_enhanced_conversation_in_session as update_conversation_in_session
+    update_enhanced_conversation_in_session as update_conversation_in_session,
+    clear_conversation_in_session
 )
-from conversation import clear_conversation_in_session
 
 # Initialize structured logger
 logger = structlog.get_logger(__name__)

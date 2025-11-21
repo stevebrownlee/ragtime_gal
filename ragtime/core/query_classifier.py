@@ -1,12 +1,17 @@
 """
-query_classifier.py - Classifies queries for appropriate context selection
+Query Classifier for RAG System
+
+Classifies queries to determine the appropriate context handling strategy.
+This enables more sophisticated query understanding beyond simple regex patterns.
+
+Migrated from root query_classifier.py to ragtime.core package.
 """
 
 import logging
 import re
 from typing import Dict, Any, Optional
 
-from conversation_embedder import ConversationEmbedder
+from ragtime.services.conversation import ConversationEmbedder
 
 logger = logging.getLogger(__name__)
 
